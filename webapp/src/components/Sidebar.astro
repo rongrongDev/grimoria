@@ -1,0 +1,37 @@
+---
+import type { NavSection } from '../lib/site';
+import { roleLabel } from '../lib/site';
+
+interface Props {
+  role: string;
+  nav: NavSection[];
+  currentId: string;
+}
+
+const { role, nav, currentId } = Astro.props;
+---
+
+<nav class="sidebar" aria-label={`${roleLabel(role)} navigation`}>
+  <a class="role-home" href={`/${role}/`}>{roleLabel(role)}</a>
+  {
+    nav.map((section) => (
+      <section>
+        <h3>{section.label}</h3>
+        {section.groups.map((group) => (
+          <>
+            {group.label && <h4>{group.label}</h4>}
+            <ul>
+              {group.items.map((item) => (
+                <li>
+                  <a href={item.href} aria-current={item.id === currentId ? 'page' : undefined}>
+                    {item.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </>
+        ))}
+      </section>
+    ))
+  }
+</nav>

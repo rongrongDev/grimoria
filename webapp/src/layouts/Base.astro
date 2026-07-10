@@ -1,0 +1,65 @@
+---
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+  description?: string;
+  breadcrumb?: { label: string; href?: string }[];
+}
+
+const { title, description, breadcrumb = [] } = Astro.props;
+const current = Astro.url.pathname;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title} · Grimoria</title>
+    {description && <meta name="description" content={description} />}
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/favicon.png" />
+    <script is:inline>
+      // Apply saved theme before first paint to avoid a flash.
+      (() => {
+        const saved = localStorage.getItem('theme');
+        const dark = saved ? saved === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+        document.documentElement.classList.toggle('dark', dark);
+      })();
+    </script>
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="/">
+        <img class="logo-light" src="/emblem.webp" alt="Grimoria" />
+        <img class="logo-dark" src="/emblem-dark.webp" alt="Grimoria" />
+        Grimoria
+      </a>
+      {
+        breadcrumb.length > 0 && (
+          <span class="breadcrumb">
+            {breadcrumb.map((c, i) => (
+              <>
+                {i > 0 && ' / '}
+                {c.href ? <a href={c.href}>{c.label}</a> : c.label}
+              </>
+            ))}
+          </span>
+        )
+      }
+      <nav>
+        <a href="/" aria-current={current === '/' ? 'true' : undefined}>Home</a>
+        <a href="/search/" aria-current={current.startsWith('/search') ? 'true' : undefined}>Search</a>
+        <button class="theme-toggle" id="theme-toggle" title="Toggle dark mode" aria-label="Toggle dark mode">◐</button>
+      </nav>
+    </header>
+    <slot />
+    <script is:inline>
+      document.getElementById('theme-toggle').addEventListener('click', () => {
+        const dark = document.documentElement.classList.toggle('dark');
+        localStorage.setItem('theme', dark ? 'dark' : 'light');
+      });
+    </script>
+  </body>
+</html>

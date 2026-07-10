@@ -1,0 +1,78 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import {
+  ROLES,
+  GROUP_ORDER,
+  ROLE_META,
+  roleLabel,
+  roleTagline,
+  docInfo,
+  categoryLabel,
+} from '../lib/site';
+
+const docs = await getCollection('docs');
+
+const cards = ROLES.map((role) => {
+  const roleDocs = docs.filter((d) => d.id.startsWith(role + '/'));
+  const readme = roleDocs.find((d) => d.id === `${role}/readme`);
+
+  const counts = new Map<string, number>();
+  for (const doc of roleDocs) {
+    const { category, slug } = docInfo(doc);
+    if (category === 'meta') continue;
+    // Count pages, not files: skill folders and sub-folder READMEs are indexes.
+    if (category === 'skills' && slug !== 'skill') continue;
+    counts.set(category, (counts.get(category) ?? 0) + 1);
+  }
+
+  return {
+    role,
+    label: roleLabel(role),
+    group: (ROLE_META as Record<string, { group: string }>)[role]?.group ?? 'Other',
+    tagline: roleTagline(readme),
+    counts: [...counts.entries()].map(([cat, n]) => `${n} ${categoryLabel(cat).toLowerCase()}`),
+  };
+});
+
+const groups = GROUP_ORDER.map((group) => ({
+  group,
+  cards: cards.filter((c) => c.group === group).sort((a, b) => a.label.localeCompare(b.label)),
+})).filter((g) => g.cards.length);
+
+const totalDocs = docs.length;
+---
+
+<Base title="Home" description="Engineering knowledge bases, browsable and searchable.">
+  <main class="home">
+    <div class="hero">
+      <img class="hero-logo logo-light" src="/grimoria.webp" alt="Grimoria" />
+      <img class="hero-logo logo-dark" src="/grimoria-dark.webp" alt="Grimoria" />
+      <p>
+        {ROLES.length} engineering knowledge bases — {totalDocs} documents of
+        distilled judgment across principles, guides, topics, skills, and agents.
+        <a href="/search/">Search everything</a> or pick a role below.
+      </p>
+    </div>
+    {
+      groups.map(({ group, cards }) => (
+        <section>
+          <h2 class="group">{group}</h2>
+          <div class="role-grid">
+            {cards.map((card) => (
+              <a class="role-card" href={`/${card.role}/`}>
+                <h3>{card.label}</h3>
+                {card.tagline && <p class="tagline">{card.tagline}</p>}
+                <div class="counts">
+                  {card.counts.map((c) => (
+                    <span>{c}</span>
+                  ))}
+                </div>
+              </a>
+            ))}
+          </div>
+        </section>
+      ))
+    }
+  </main>
+</Base>

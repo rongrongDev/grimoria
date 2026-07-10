@@ -1,0 +1,40 @@
+---
+import Base from '../layouts/Base.astro';
+---
+
+<Base title="Search" description="Full-text search across all knowledge bases.">
+  <main class="search-page">
+    <h1>Search</h1>
+    <link rel="stylesheet" href="/pagefind/pagefind-ui.css" />
+    <script is:inline src="/pagefind/pagefind-ui.js"></script>
+    <div id="search"></div>
+    <script is:inline>
+      window.addEventListener('DOMContentLoaded', () => {
+        if (typeof PagefindUI !== 'undefined') {
+          new PagefindUI({
+            element: '#search',
+            showSubResults: true,
+            showImages: false,
+            pageSize: 10,
+          });
+          document.querySelector('#search input')?.focus();
+        } else {
+          document.getElementById('search').innerHTML =
+            '<p>The search index is generated at build time. Run <code>npm run build && npm run preview</code> to use search — it is not available on the dev server.</p>';
+        }
+      });
+    </script>
+  </main>
+</Base>
+
+<style is:global>
+  #search {
+    --pagefind-ui-primary: var(--accent);
+    --pagefind-ui-text: var(--text);
+    --pagefind-ui-background: var(--bg);
+    --pagefind-ui-border: var(--border);
+    --pagefind-ui-tag: var(--bg-soft);
+    --pagefind-ui-border-radius: 10px;
+    --pagefind-ui-font: inherit;
+  }
+</style>

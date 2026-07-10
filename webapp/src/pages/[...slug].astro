@@ -1,0 +1,107 @@
+---
+import { getCollection, render } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import Sidebar from '../components/Sidebar.astro';
+import Toc from '../components/Toc.astro';
+import {
+  ROLES,
+  routeFor,
+  docInfo,
+  docTitle,
+  buildRoleNav,
+  roleLabel,
+  categoryLabel,
+  humanize,
+  type Doc,
+} from '../lib/site';
+
+export async function getStaticPaths() {
+  const docs = await getCollection('docs');
+  const paths = docs.map((entry) => ({
+    params: { slug: routeFor(entry) },
+    props: { entry: entry as Doc | null, role: docInfo(entry).role, docs },
+  }));
+  // Roles whose README doesn't exist yet still get a landing page,
+  // so home cards and sidebar "role home" links never 404.
+  for (const role of ROLES) {
+    const hasDocs = docs.some((d) => d.id.startsWith(role + '/'));
+    const hasReadme = docs.some((d) => d.id === `${role}/readme`);
+    if (hasDocs && !hasReadme) {
+      paths.push({ params: { slug: role }, props: { entry: null, role, docs } });
+    }
+  }
+  return paths;
+}
+
+const { entry, role, docs } = Astro.props;
+const rendered = entry ? await render(entry) : null;
+
+const info = entry ? docInfo(entry) : { role, category: 'meta', sub: null, slug: 'readme' };
+const nav = buildRoleNav(role, docs);
+const title = entry ? docTitle(entry) : roleLabel(role);
+
+const fm = (entry?.data ?? {}) as Record<string, unknown>;
+const isSkill = info.slug === 'skill';
+const isAgent = info.category === 'agents';
+const showCard = (isSkill || isAgent) && typeof fm.description === 'string';
+
+const breadcrumb = [
+  { label: roleLabel(role), href: `/${role}/` },
+  ...(info.category !== 'meta' ? [{ label: categoryLabel(info.category) }] : []),
+  ...(info.sub && !isSkill ? [{ label: humanize(info.sub.split('/').pop()!) }] : []),
+];
+
+const roleFilter = `role:${roleLabel(role)}`;
+const categoryFilter = `category:${categoryLabel(info.category)}`;
+---
+
+<Base title={`${title} · ${roleLabel(role)}`} breadcrumb={breadcrumb}>
+  <div class="doc-layout">
+    <Sidebar role={role} nav={nav} currentId={entry?.id ?? ''} />
+    <main class="doc-main">
+      <details class="sidebar-details">
+        <summary>{roleLabel(role)} — all docs</summary>
+        <Sidebar role={role} nav={nav} currentId={entry?.id ?? ''} />
+      </details>
+      <article class="prose" data-pagefind-body data-pagefind-filter={roleFilter} data-pagefind-meta={`title:${title}`}>
+        <span data-pagefind-filter={categoryFilter} hidden></span>
+        {
+          showCard && (
+            <div class="fm-card" data-pagefind-ignore>
+              <span class="fm-kind">{isSkill ? 'Skill' : 'Agent'} · {String(fm.name ?? title)}</span>
+              <p class="fm-desc">{String(fm.description)}</p>
+              {(fm.tools || fm.model) && (
+                <p class="fm-props">
+                  {fm.model && (
+                    <>
+                      model: <code>{String(fm.model)}</code>{' '}
+                    </>
+                  )}
+                  {fm.tools && (
+                    <>
+                      tools: <code>{String(fm.tools)}</code>
+                    </>
+                  )}
+                </p>
+              )}
+            </div>
+          )
+        }
+        {
+          rendered ? (
+            <rendered.Content />
+          ) : (
+            <>
+              <h1>{roleLabel(role)}</h1>
+              <p>
+                This knowledge base doesn't have a README yet. Browse its documents from the
+                sidebar.
+              </p>
+            </>
+          )
+        }
+      </article>
+    </main>
+    <Toc headings={rendered?.headings ?? []} />
+  </div>
+</Base>
