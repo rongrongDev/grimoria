@@ -1,0 +1,44 @@
+# Glossary
+
+> Single shared glossary for the whole KB. Terms defined the way they're *used in production triage*, not the way marketing pages define them. **Last reviewed:** 2026-07-06
+
+- **AGP** — Android Gradle Plugin. Its major version gates Gradle and compileSdk options; "AGP upgrade" is a project event, not a version bump.
+- **ANR** — Application Not Responding. The system kills/flags your app when the main thread misses a deadline: ~5 s for input dispatch, ~10 s for broadcast receivers (foreground), ~5–20 s for services/FGS-start. An ANR is a symptom; the cause is whatever the main thread was *waiting on* — often not what its stack trace shows. See `principles/memory-and-performance.md`.
+- **App Standby Bucket** — OS-assigned usage tier (active → working set → frequent → rare → restricted) controlling how often your jobs/alarms may run. Check with `adb shell am get-standby-bucket`.
+- **Backpressure** — a producer emitting faster than the consumer consumes. In Android UI the correct response is almost always *drop stale values* (`conflate`, `collectLatest`), not buffer them. See `principles/concurrency.md`.
+- **Baseline Profile** — a shipped list of methods/classes AOT-compiled at install, skipping JIT warm-up. Typical 15–30% cold-start improvement. Generated via Macrobenchmark.
+- **Binder** — Android's IPC mechanism. Every call into a system service (`PackageManager`, `WindowManager`...) is a binder transaction that can block on a busy system process — a main-thread binder call in a hot path is an ANR class.
+- **Cold / warm / hot start** — cold: process doesn't exist (full init cost); warm: process exists, Activity doesn't; hot: Activity brought to foreground. Cold start is the retention-critical one.
+- **Composition / recomposition** — Compose building the UI tree / re-executing composable functions whose observed inputs changed. Recomposition scope = nearest *restartable* function that read the changed state.
+- **Configuration change** — device/environment change (rotation, locale, dark mode, fold, resize) that by default **destroys and recreates the Activity**. Objects die, process lives.
+- **Config cache / build cache** — Gradle features caching configuration-phase output / task outputs respectively. Both should be on; their absence is a top build-health finding.
+- **Doze / App Standby** — system power states (device idle / app unused) deferring jobs, alarms, and network to maintenance windows. Force with `adb shell dumpsys deviceidle force-idle`.
+- **Edge-to-edge** — app draws behind system bars; **forced at targetSdk 35+**. Requires explicit `WindowInsets` handling on every screen.
+- **Expedited work** — WorkManager work requesting immediate execution, subject to a quota; degrades (or fails) out of quota. Not a guarantee.
+- **FGS (Foreground Service)** — service with a user-visible notification, for user-perceptible ongoing work. Since API 34: mandatory typed declaration (`foregroundServiceType`), per-type restrictions and time caps.
+- **Idempotent (worker/request)** — safe to execute more than once with the same outcome. Required property for all WorkManager work and upload endpoints, because retries and duplicate scheduling *will* happen.
+- **Konsist** — library for writing architecture rules as unit tests (e.g., "no android imports in :domain"). The cheap way to make architecture decisions self-enforcing.
+- **KSP / kapt** — annotation-processing mechanisms; KSP is the fast, Kotlin-native replacement. Lingering kapt is a standard build-speed finding.
+- **LeakCanary** — debug-build library that detects retained (leaked) objects and prints the reference chain. Read chains top-down: the leak is the first *unexpected* link.
+- **Macrobenchmark** — Jetpack library measuring whole-app metrics (startup, jank) on device from a separate process; also generates Baseline Profiles.
+- **Main-safe** — a suspend function that is safe to call from the main thread because it internally shifts blocking work off it. The data-layer contract.
+- **Merged manifest** — the final AndroidManifest after merging app + all library/dependency manifests. Where surprise permissions, providers, and exported components come from.
+- **Perfetto** — system-wide tracing tool (successor to systrace); the ground truth for startup, jank, ANR, and scheduling investigations.
+- **Platform type** (`String!`) — a Java value of unknown nullability crossing into Kotlin; unchecked until dereference. See `topics/java-interop.md`.
+- **Process death** — the OS SIGKILLing your backgrounded process under memory pressure. No lifecycle callbacks run. The back stack + saved instance state are restored on return, so it must be *invisible* to the user. Simulate: background the app, `adb shell am kill <pkg>`.
+- **R8** — the shrinker/optimizer/obfuscator in the Android build. Breaks reflection-reached code unless keep rules exist; it is not a security control.
+- **Recomposition storm** — pathological recomposition frequency/breadth, usually from unstable parameters or state read too high in the tree.
+- **SavedStateHandle / saved instance state** — the small bundle-backed state that survives process death (and config change). For seeds (IDs, drafts, positions), not working sets. Size-limited: `TransactionTooLargeException` at ~500 KB total.
+- **Semantics (Compose)** — the parallel tree describing UI *meaning* (labels, roles, states, actions) consumed by both accessibility services and UI tests.
+- **Skippable / stable (Compose)** — a composable is skippable if Compose can prove its inputs unchanged and skip re-executing it; provable only for *stable* parameter types. Strong-skipping mode relaxes the lambda part.
+- **SSOT (single source of truth)** — exactly one owner per piece of state; everything else observes it. The alternative is the "stale after X" bug family.
+- **StateFlow conflation** — StateFlow delivers the *latest* value; rapid intermediate values may never be observed. Affects both UI and tests (assert settled states, not sequences).
+- **stateIn / WhileSubscribed(5000)** — converting a cold flow to shared state that stops when unobserved; the 5 s grace bridges configuration changes. The default for VM state exposure.
+- **StrictMode** — debug facility that detects main-thread I/O and leaked resources at the moment they happen. Run with `penaltyDeath` in debug or it becomes log noise.
+- **Structured concurrency** — coroutines form a parent-child tree: cancelling the parent cancels children; failures propagate. The promise: *work cannot outlive its reason to exist.*
+- **TalkBack** — Android's screen reader; navigates the semantics/accessibility tree, not the visual tree.
+- **UDF (unidirectional data flow)** — state flows down as immutable snapshots; events flow up as function calls. The one non-negotiable UI architecture rule in this KB.
+- **UiState** — the single immutable data class snapshot a ViewModel exposes per screen.
+- **Vitals (Play Console)** — Google Play's field telemetry: ANR rate, crash rate, wakeups, etc. Exceeding "bad behavior" thresholds (ANR ≥ 0.47% daily sessions; crash ≥ 1.09%) demotes store visibility.
+- **WindowSizeClass** — bucketed window dimensions (compact/medium/expanded) for adaptive layout; the replacement for `isTablet` heuristics.
+- **Zombie work** — coroutine/callback work still running after its lifecycle owner is gone; produced by scope misuse or swallowed `CancellationException`.

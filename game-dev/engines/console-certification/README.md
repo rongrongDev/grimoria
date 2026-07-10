@@ -1,0 +1,33 @@
+# Console Certification — Platform-Agnostic Engineering Guidance (Extended Tier)
+
+**Applies to:** all console platforms, deliberately unnamed specifics — exact certification requirements (TRCs/XRs/lotcheck items) are under NDA and change; this doc teaches the *shape* of cert and the engineering posture that passes it first time. Get the real checklists from your platform developer portals the day you get devkit access.
+**Last reviewed:** 2026-07-06.
+
+Cert is not QA. Platform cert teams test *platform integration correctness* against a checklist of hundreds of requirements, and a single failure means: fix → resubmit → wait (days to weeks) → repeat. Two failed submissions can slip a launch date past a marketing beat. Teams that pass first time aren't lucky — they engineered against the *categories* below from pre-production, because every category is architectural if discovered late and trivial if designed early.
+
+---
+
+## 1. The categories that fail cert (and their engineering posture)
+
+**Suspend/resume & process lifecycle.** Consoles suspend games at any moment (power events, system UI, user switching) and may keep them suspended for *days*. Failures: crashes on resume (GPU/network/audio handles gone stale), progress loss, desynced online state. Posture: treat suspend like the [mobile process-death model](../../principles/save-load-and-versioning.md) §2 — a resume-from-suspend test in the nightly device pass (suspend during combat, during save, during load, during matchmaking — the *during-save* one is where the [atomic-write ritual](../../principles/save-load-and-versioning.md) §2 earns its keep), reconnect logic for every network session type, and a resource-recreation path for anything the OS can revoke.
+
+**User & account handling.** The active user can change mid-session, sign out mid-match, or remove their controller. Failures: wrong-user saves (a cert-critical data-integrity class), crashes on user-change events. Posture: user identity is a *dependency injected into* save/entitlement/session systems, never a global read once at boot ([architecture doc §3](../../principles/architecture-ecs-vs-oop.md) explicit-lifetime thinking applied to identity); every save write tagged to the owning user; a user-change chaos test in CI-on-devkit.
+
+**Storage & saves.** Quota handling, out-of-space at save time, corrupted-save recovery, save UI conventions. The whole [save-load doc](../../principles/save-load-and-versioning.md) is the posture; cert adds: *never* lose data silently, always message the player per platform convention. The kill-test (§2 there) doubles as cert prep.
+
+**Networking & online conduct.** Graceful behavior on every network transition (cable pull mid-match, NAT timeout, service outage), privilege/permission checks (multiplayer/communication privileges per user — including *mid-session revocation*), cross-play policy compliance. Posture: the [netcode test-rig tiers](../../principles/networking-and-multiplayer.md) §7 extended with a "connection killed at every state-machine state" sweep; privilege checks centralized in one service, not scattered per feature (scattered = one missed callsite = cert failure).
+
+**Controllers & peripherals.** Disconnect/reconnect at any moment (including boot, cinematics, loads), multiple controllers, correct glyph display per input device. Failures here are embarrassing and common: the pause-on-disconnect that doesn't fire during cutscenes. Posture: input routed through one abstraction ([build guide](../../guides/build-from-scratch.md) input layer) so disconnect handling is one code path; a monkey-test that hotplugs virtual controllers.
+
+**Performance & stability floors.** Sustained crashes, hangs, or severe frame problems fail cert; some platforms have expectations around load feedback (no perceived hangs — show progress), memory limits (hard OOM kills), and thermal-driven throttling on some hardware tiers. Posture: the [performance doc](../../principles/performance-and-frame-budgets.md) budgets set to the *weakest* SKU (the Series-S-class tier is the design constraint, not the afterthought — retrofitting memory budgets to the small SKU at beta is the classic current-gen failure), soak tests on devkit ([testing doc §6](../../principles/testing-and-determinism.md)), and hitch/hang telemetry.
+
+**Platform services integration.** Achievements/trophies (exact unlock conditions, offline unlock queuing), presence, activities, DLC entitlement checks (including *license revocation mid-session* and disc/digital divergence), platform store price/SKU display rules. Posture: one platform-services abstraction layer per subsystem with per-platform backends — and *stub backends for dev* so the whole team isn't blocked on devkit count; entitlement checks server-validated where real money is involved ([security doc §3](../../principles/security-and-anti-cheat.md)).
+
+**Content & localization compliance.** Age-rating consistency across regions, legally-required text, platform trademark/naming conventions in all player-facing strings ("press the [glyph] button" not "press X" on the platform where X is elsewhere), save-icon/system-text localization. Posture: platform-conditional string tables from the start; a strings audit pass in the cert-prep milestone.
+
+## 2. Process posture (what schedule-owners must know)
+
+- **Read the actual requirements at devkit day one**, assign each category an owner, and build the internal pre-cert checklist as *automated tests where possible* (suspend/resume, user-change, controller-pull, out-of-space are all scriptable on devkits) + a manual pass rubric for the rest. Run the full pre-cert pass at every milestone, not once before submission — the categories above are cheap to keep green and brutal to batch-fix.
+- **Budget two cert cycles** in the schedule even if you expect one (first-party relationships and title complexity move the odds; a networked live-service title passing first time is the exception). Day-one patches have their own cert path with its own clock — the "we'll fix it in the day-one patch" plan needs that clock in the schedule too.
+- **Patch/update cert is forever:** every post-launch update re-enters some cert process, with size and cadence considerations ([asset doc §5](../../principles/asset-pipeline-and-memory.md) patch discipline). Live-service teams: the pre-cert automation is a permanent CI stage, not a launch artifact.
+- **Middleware/engine versions matter:** engine releases carry platform-compliance fixes; pin and track the engine's platform-release notes ([Unity](../unity/README.md)/[Unreal](../unreal/README.md) version-stamping discipline exists partly for this).

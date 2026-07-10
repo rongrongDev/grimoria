@@ -1,0 +1,27 @@
+# Distributed Training: Multi-GPU / Multi-Node Fundamentals
+
+**Version 1.0 — 2026-07-06. Extended tier: production patterns + common pitfalls (not a full tutorial). Verified against PyTorch 2.4–2.7 (DDP/FSDP2, torchrun, NCCL).** Standalone. Related: [pytorch-training.md](pytorch-training.md), [../principles/training-and-reproducibility.md](../principles/training-and-reproducibility.md) §4 (the judgment summary this doc expands).
+
+---
+
+**The prime directive: distributed training must be a *performance* change, never a *semantics* change.** Every pitfall below is a case where parallelism silently changed what was being optimized. The universal detector is the **loss-curve equivalence test**: 1-GPU vs. N-GPU with identical effective batch size and seeds → statistically indistinguishable curves. Run it once per training-codebase change; it is to distributed training what the unit test is to functions.
+
+## Production patterns
+
+- **Escalation ladder — stop at the first rung that fits:** single GPU (with AMP, grad accumulation, activation checkpointing — these often remove the "need" for more GPUs) → single-node DDP (`torchrun`, one process per GPU; never legacy `DataParallel`, which is slower and semantically weirder) → multi-node DDP (only when one node's GPUs genuinely can't hold the throughput) → FSDP/ZeRO-sharding (only when the *model + optimizer states* don't fit one GPU — it's for memory, not speed; if DDP fits, DDP is simpler and usually faster) → tensor/pipeline parallel (LLM-scale; if you're there, you need the framework's own docs, not this page).
+- **Effective batch math, written down:** `eff_batch = per_gpu_batch × world_size × accum_steps`. Changing world size changes eff_batch changes the optimization problem. Linear LR scaling + warmup as the starting recipe, then re-tune; and record eff_batch in the run config so cross-run comparisons are honest ([experiment-tracking.md](experiment-tracking.md) §1).
+- **Checkpoint/resume from rank 0 only** (or sharded-aware APIs for FSDP: `torch.distributed.checkpoint`), with the full state dict from [pytorch-training.md](pytorch-training.md) §4; every rank barriers before load.
+- **Fail-fast infra:** NCCL timeouts configured (`TORCH_NCCL_BLOCKING_WAIT`/heartbeat settings), preemption-safe resumption (spot instances *will* preempt), and throughput-per-GPU logged — a multi-node job quietly running at 40% scaling efficiency burns budget invisibly; measure scaling efficiency once (throughput_N / (N × throughput_1)) and set a floor.
+
+## Common pitfalls (each has burned a real team)
+
+- **Identical data on every rank.** `DistributedSampler` missing (each rank iterates the full dataset — N× cost, subtly different convergence) or `sampler.set_epoch(epoch)` not called (same shuffle order every epoch, and identical across ranks in some setups). Detector: log the first batch's IDs per rank for one step; they must be disjoint.
+- **Loss/metric aggregation lies.** Metrics computed on rank 0's shard only, reported as global (you're reading 1/Nth of validation — noisy and possibly biased by sharding); or per-rank means averaged where sample counts differ. Fix: `all_gather`/`all_reduce` metrics with correct weighting, or run validation on rank 0 over the *full* val set. The 3-week version of this bug: val metric "improved" after scaling to 8 GPUs because rank 0's shard was easier.
+- **BatchNorm across ranks.** BN statistics are per-process under DDP — per-GPU batch 8 on a recipe tuned at 64 degrades quietly. Use `SyncBatchNorm` (`convert_sync_batchnorm`) or architectures without BN. This is the most common cause of "DDP converges slightly worse."
+- **Gradient accumulation × DDP interaction:** DDP all-reduces every backward; without `model.no_sync()` on non-final micro-batches you sync k× more than needed (slow, and with some custom hooks, wrong). Also the un-divided loss (`/accum_steps`) from [pytorch-training.md](pytorch-training.md) §3 — under DDP it compounds with the mean-vs-sum reduction choice.
+- **Uneven last batches / dataset sizes per rank** → one rank finishes early → NCCL collective hangs with no error until timeout (the classic "job frozen at 99%"). `drop_last=True` on training; `join()` context or padded sampling for eval.
+- **Randomness divergence:** same seed on all ranks (augmentations identical across ranks — reduces effective data diversity) or unseeded per-rank divergence where sameness was assumed (e.g., a stochastic layer that must agree for a custom sync). Rule: seed = f(base_seed, rank) for data/augmentation; base_seed alone for anything that must match; document which is which.
+- **Dirty failure recovery:** rank crashes, job auto-restarts from a checkpoint some ranks wrote at different steps → resumed run is a chimera. Atomic, rank-0-coordinated checkpointing with step-stamped filenames; resume asserts all shards carry the same step.
+- **"It's slower on 2 nodes than 1"** — inter-node bandwidth (no NVLink/IB between nodes) making all-reduce the bottleneck: gradient compression won't save a batch size too small to hide comms; increase per-GPU batch / use accumulation, overlap comms (DDP does by default — don't break it with manual `.grad` fiddling), or stay on one node. Multi-node is a *last* resort economically, not a flex.
+
+When any of these is suspected: run the loss-curve equivalence test first — it converts "distributed training feels off" into a binary answer before you spend a day in NCCL logs.

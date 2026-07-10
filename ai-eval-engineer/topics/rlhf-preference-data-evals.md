@@ -1,0 +1,27 @@
+# Evaluating RLHF / Preference-Data Pipelines
+
+**Version:** 1.0.0 · **Date:** 2026-07-06 · **Tier:** extended (production patterns + common pitfalls) · **Applies to:** preference-data collection and reward-model (RM) pipelines for RLHF/DPO-style post-training; also applies to "preference data" used for best-of-n reranking
+
+---
+
+## Why this is an eval problem
+
+A preference pipeline is three instruments stacked: **annotators** produce pairwise choices → a **reward model** distills them → **optimization** pushes the policy against the RM. Every failure mode in `../principles/human-evaluation.md` and `../principles/llm-as-judge.md` recurs here, with one brutal amplifier: downstream optimization *searches for* your instrument's errors. A judge bias in an eval misleads a dashboard; the same bias in a reward signal gets **optimized into the model**. Verbosity bias in eval scoring inflates a number; verbosity bias in preference data ships a model that pads everything. Evaluate the pipeline like an instrument whose errors will be found and exploited, because they will — that's what the optimizer is for.
+
+## Production patterns
+
+- **Evaluate the preference data before training on it.** IRR on pairwise choices (double-annotate ≥ 20%; kappa per task type — `../principles/human-evaluation.md` §1); position-balance audit (A/B slot vs. choice rate — position bias in collection becomes a *learned* artifact); length-vs-preference correlation (the verbosity check from `../principles/llm-as-judge.md` §3 pointed at humans, who have it too — raters under time pressure prefer longer answers at rates that should alarm you); rater-mix documentation (expertise routing per `../principles/human-evaluation.md` §3 — generalist preferences on expert content teach the model to optimize for *sounding* right to non-experts, which is arguably the worst single thing a preference pipeline can do).
+- **Evaluate the reward model as a model.** Held-out preference accuracy (with CI, vs. the ~two-thirds ceiling that human agreement itself sets — an RM "beating" annotator agreement is fitting noise); *slice it* by task type, length delta, refusal-vs-comply pairs; probe for exploitable regularities with content-identical perturbation pairs (padded vs. tight, hedged vs. direct, listy vs. prose — the RM should be indifferent; measured deltas on these are your future reward-hacks, enumerated in advance).
+- **Golden preference pairs as a regression suite** for the pipeline itself: adjudicated, unambiguous pairs (including deliberately-hard ones: correct-short vs. wrong-long, blunt-accurate vs. warm-vague) re-scored on every RM retrain, gated per `../principles/regression-testing-and-edd.md`. RM version, data snapshot, and eval-set version pinned together.
+- **Close the loop with post-training evals that don't share the RM's blind spots.** The policy's post-RLHF eval must not be judged by the RM (obviously) *nor by an LLM judge sharing the RM's biases* — the inherited-bias trap of `../principles/multi-agent-orchestration.md` §3 in its highest-stakes form. Human eval on a fresh sample + cross-family judges; explicitly re-measure the perturbation axes the RM was weak on to see whether the policy found them.
+
+## Common pitfalls
+
+- **Reward hacking observed too late.** Policy reward climbs; human eval flat or down. Detect *during* training: trend output length, hedging-phrase rates, list/format frequency, refusal rates against training step — monotone drift on a content-orthogonal feature is the optimizer finding an RM regularity. (The eval-side analog — engineers hill-climbing a burned dev set — is `../principles/contamination-and-leakage.md` §3; same dynamic, gradient descent instead of engineers.)
+- **Preference drift across collection eras.** Guidelines v1 vs. v3 rater pools disagree systematically; mixed eras train an RM on a contradiction. Tag every pair with guideline version + collection date; check cross-era agreement before pooling; re-adjudicate or drop conflicting eras (the two-writers-no-editor failure of `../principles/multi-agent-orchestration.md` §2, at dataset scale).
+- **Contaminated pairs:** eval prompts leaking into preference-training prompts — the policy is then evaluated on prompts whose preferred completions it was trained toward. Partition prompt pools between preference collection and evaluation at the pipeline level (`../principles/contamination-and-leakage.md` §2's conveyor-belt rule).
+- **Ties and "both bad" forced into false preferences.** UIs without tie/both-bad options manufacture coin-flip labels that dilute the RM and *cap its measurable accuracy*; the pipeline then chases RM "improvements" against a noise floor it created. Allow ties; track their rate as a data-quality metric.
+- **Synthetic preferences (LLM-labeled pairs) inheriting the full judge bias catalog** — self-preference, position, verbosity (`../principles/llm-as-judge.md` §§1–3) — then laundering it as "data." Synthetic preference generation is judge deployment at scale: calibrate against human preferences on a stratified sample first, position-swap every pair, and record the generator model family so downstream users know which family's taste they're distilling.
+
+## Related
+`../principles/human-evaluation.md` (rater pipelines) · `../principles/llm-as-judge.md` (bias catalog — the RM inherits it) · `../principles/statistical-rigor.md` (agreement ceilings, CI on RM accuracy) · `../principles/contamination-and-leakage.md` (prompt-pool partitioning)

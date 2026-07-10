@@ -1,0 +1,43 @@
+# Applied Cryptography — Using Real Libraries Correctly
+
+**Date:** 2026-07-06 · **Tier:** extended (production patterns + common pitfalls; not a cryptography course) · **Standards:** NIST SP 800-57 (key mgmt), SP 800-38D (GCM), FIPS 203/204/205 (post-quantum, 2024); CWE-327 (broken/risky algorithm), CWE-330 (weak randomness), CWE-759/760 (missing/predictable salt) · **Standalone:** yes · **Related:** [../secrets-and-keys/](../secrets-and-keys/README.md) §4 (key custody — read together), [../authentication-and-sessions/](../authentication-and-sessions/README.md) §1 (password hashing, covered there), [../oauth-oidc-jwt/](../oauth-oidc-jwt/README.md) §1 (signature validation, covered there)
+
+**The prime directive, with its actual reasoning:** never design your own crypto — *and never assemble your own either.* The second clause is where engineers actually get hurt: nobody writes their own cipher, but plenty hand-assemble AES-CBC + hand-rolled padding + no MAC and ship a padding-oracle. Crypto failures are **silent**: the code encrypts, decrypts, round-trips, passes tests, and is broken in a way only an attacker will ever exercise. That silence — no crash, no wrong answer in the happy path — is why the bar is "use the misuse-resistant high-level API," not "be careful."
+
+## 1. Production patterns (the short correct list)
+
+| Need | Use | Notes |
+|---|---|---|
+| Encrypt data at rest/in a token | High-level AEAD API: libsodium `secretbox`/`crypto_box`, Tink, Fernet-class, or platform KMS envelope encryption | These make the classic mistakes (below) unrepresentable. KMS envelope encryption also solves key custody in the same move — [secrets-and-keys](../secrets-and-keys/README.md) §4 |
+| Data in transit | TLS 1.2+/1.3, platform stack, cert verification ON | Your job is configuration and cert lifecycle, not protocol work. `verify=False` is the pitfall — [code-review grep table](../../principles/secure-code-review.md) §3 |
+| Password storage | Argon2id / bcrypt via maintained lib | Full treatment: [authentication](../authentication-and-sessions/README.md) §1 |
+| Integrity/authenticity of a blob or token | HMAC-SHA-256, or the AEAD's built-in tag; signatures (Ed25519/ECDSA) when verifier ≠ minter | Compare MACs with the library's constant-time compare, never `==` |
+| Random anything security-relevant (tokens, IDs, salts, nonces) | The CSPRNG: `secrets`, `crypto.randomBytes`, `SecureRandom`, `crypto/rand`, `getrandom` | Never `Math.random`/`rand()`/time-seeded PRNGs — CWE-330 findings are mechanical to grep and routinely real |
+| Hashing (non-password): dedupe, checksums, IDs | SHA-256 / BLAKE2-3 | MD5/SHA-1 are dead for anything collision-relevant; they linger acceptably only in non-adversarial checksumming, and even there they invite audit questions — migrate |
+| Key derivation from a password/low-entropy input | Argon2id/scrypt/PBKDF2 (KDF), not a bare hash | "SHA-256 of the passphrase" as a key = offline-crackable key |
+
+Decision heuristic for everything not on the list: **if you're choosing modes, padding, IVs, or byte layouts, you've descended an abstraction level too far** — find the higher-level API or the specialist. And before encrypting at all, ask the cheaper question: does this data need to exist here ([mindset](../../principles/security-mindset.md) heuristic 9 — data you don't hold can't be breached)?
+
+## 2. Common pitfalls (each detectable in review, each from real incidents)
+
+1. **ECB mode** (CWE-327): identical plaintext blocks → identical ciphertext blocks; structure survives "encryption" (the classic penguin image). *Detect:* `"AES/ECB"`, `MODE_ECB` — a pure grep. Any hit is a finding; there is no legitimate new use.
+2. **Nonce/IV reuse:** static IV constants, counters that reset, random 96-bit GCM nonces at volumes where collision becomes plausible. GCM with a repeated nonce doesn't just leak — it breaks authentication catastrophically. *Detect:* IV/nonce passed as a constant or derived from anything but the CSPRNG/a managed counter; high-volume GCM without nonce-management discussion. *Fix:* misuse-resistant modes via high-level APIs (XChaCha20-Poly1305's 192-bit nonces make random safe; SIV modes survive reuse).
+3. **Encryption without authentication:** raw CBC/CTR with no MAC — malleable ciphertext, padding oracles (a decade of TLS/framework CVEs share this root). *Detect:* any decrypt path whose failure mode isn't "authenticated tag mismatch"; any encrypt-then-hand-assembled-MAC (order and key-separation errors hide there). *Fix:* AEAD, always; it's the default in every §1 API.
+4. **Weak randomness where it matters** (CWE-330): reset tokens from `random()`, session IDs from timestamps, UUIDv1/v4-via-weak-PRNG as security tokens. *Detect:* grep the non-CSPRNG APIs near token/ID/salt/key generation ([the review-drill grep](../../principles/secure-code-review.md) §3). One real-world class: game/promo codes and reset tokens brute-forced because the generator was seeded per-request with the clock.
+5. **Missing/static salt** (CWE-759/760): same-password users share hashes; rainbow tables apply. Modern password APIs handle salts internally — this pitfall now mostly appears in *homegrown token-hashing and fingerprinting* code. *Detect:* any `hash(secret)` where two identical inputs must not be linkable.
+6. **Comparing secrets with `==`:** early-exit string comparison leaks match-length through timing; on MAC/token checks this is a practical oracle. *Detect:* `==`/`equals` on MAC outputs, API keys, token hashes. *Fix:* `hmac.compare_digest`/`timingSafeEqual`/`MessageDigest.isEqual`-class functions.
+7. **Rolling your own token format:** custom "encrypted blob" cookies and license schemes assembled from primitives — the assembly-level version of the prime directive. Use the boring standards (signed cookies from the framework, JWT *validated per* [the JWT doc](../oauth-oidc-jwt/README.md) §1, PASETO) — they encode the lessons of everyone else's incidents. This is also [authentication](../authentication-and-sessions/README.md)'s "don't build authN from parts," one layer down.
+8. **Encrypting-and-forgetting the key next to the data:** ciphertext in the DB, key in the same DB/config — one breach captures both; encryption bought nothing but audit theater. Custody rules: [secrets-and-keys](../secrets-and-keys/README.md) §4 (KMS, per-purpose keys, envelope encryption, separation of duties).
+
+## 3. Two forward-looking judgment notes
+
+- **Crypto-agility is an inventory problem.** You will migrate algorithms (SHA-1's death, RSA-1024, and now the post-quantum transition — NIST's ML-KEM/ML-DSA standards landed 2024; TLS stacks and KMS products are shipping hybrid modes). The org that migrates cheaply is the one that knows *where* crypto is used: keep the §1 choices behind your own thin internal API (the blessed-wrapper pattern that [runs through this KB](../ssrf-xxe-deserialization/README.md)), record algorithm+key-size in the [secrets inventory](../secrets-and-keys/README.md) §2, and the migration becomes a wrapper change plus a key-rotation campaign instead of an archaeology project. Harvest-now-decrypt-later is the reason long-confidentiality data (health, legal, trade-secret) should be first in the hybrid-KEM queue.
+- **FIPS/compliance contexts change the answer set, not the principles.** If you operate under FIPS/regulatory constraints, the §1 table narrows to validated modules — engage that requirement at design time; retrofitting a validated module under a compliance deadline is the crypto version of [retrofit-cost](../../principles/secure-sdlc.md) §0 economics.
+
+## 4. Review drill (any diff touching crypto)
+
+1. Is this on the §1 list, through the blessed wrapper? If it's assembling primitives — modes, IVs, MACs, byte layouts — stop the review and escalate the design instead of nitpicking the assembly.
+2. Grep the pitfall signatures: `ECB`, constant IVs, non-CSPRNG randoms near tokens, `==` on secrets, `md5(`/`sha1(` near anything adversarial.
+3. Where does the key live, who can read it, when does it rotate, and is decrypt-old/encrypt-new supported? (All [secrets-and-keys](../secrets-and-keys/README.md) §3–4 questions — a crypto review that skips custody reviews half the system.)
+4. What happens on decrypt/verify *failure* — fail closed, logged, alerted? (An attacker's probes fail before they succeed; the failure path is your tripwire, [same as injection](../injection/README.md) §1.)
+5. New crypto dependency → maintained, mainstream, on the update-bot's list? ([supply-chain](../supply-chain/README.md) §1 gate; abandoned crypto libs are where pitfalls fossilize.)

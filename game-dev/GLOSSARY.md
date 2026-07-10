@@ -1,0 +1,46 @@
+# Glossary
+
+One canonical definition per term, as used throughout this KB. Terms link their primary doc. **Last reviewed:** 2026-07-06.
+
+- **Accumulator (game loop)** — running total of unsimulated real time; while ≥ one fixed timestep, the sim advances one tick and the accumulator decreases. Must be clamped on input. [game-loop-and-timing.md](principles/game-loop-and-timing.md)
+- **Addressables** — Unity's reference-counted, handle-based asset loading/delivery system over asset bundles. [engines/unity/assets-and-addressables.md](engines/unity/assets-and-addressables.md)
+- **Archetype (ECS)** — a unique component-set combination; archetype storage groups entities with identical component sets into contiguous chunks. [architecture-ecs-vs-oop.md](principles/architecture-ecs-vs-oop.md)
+- **Atomic write** — save-file write via temp file + fsync + rename so a mid-write process death leaves the previous file intact. [save-load-and-versioning.md](principles/save-load-and-versioning.md)
+- **Authority (server-)** — the design principle that the server computes gameplay outcomes; clients send intents. The foundation of anti-cheat. [security-and-anti-cheat.md](principles/security-and-anti-cheat.md)
+- **Burst** — Unity's LLVM-based compiler for job code over blittable data; large speedups, float-determinism caveats. [engines/unity/dots-jobs-and-burst.md](engines/unity/dots-jobs-and-burst.md)
+- **Checksum (state)** — per-tick hash of simulation-relevant state, compared across machines/runs to detect desync; hierarchical (per-system → per-entity) for bisection. [networking-and-multiplayer.md](principles/networking-and-multiplayer.md) §5
+- **Client-side prediction** — client applies its own inputs immediately to a local copy instead of waiting for the server round trip. Paired with *reconciliation*. [networking-and-multiplayer.md](principles/networking-and-multiplayer.md) §3
+- **DDC (Derived Data Cache)** — Unreal's cache of cooked-from-source derived data (shaders, texture conversions); shared DDC is key team infrastructure. [engines/unreal/assets-and-streaming.md](engines/unreal/assets-and-streaming.md) §5
+- **Delta compression** — sending only what changed against a last-acknowledged baseline snapshot rather than full state. [networking-and-multiplayer.md](principles/networking-and-multiplayer.md) §2
+- **Desync** — divergence between simulations that were required to agree (lockstep peers, or client prediction vs server). [networking-and-multiplayer.md](principles/networking-and-multiplayer.md) §5
+- **Determinism** — same build + same seed + same inputs → bit-identical state every tick, across the scopes the game requires (run/process/core-count/platform). [testing-and-determinism.md](principles/testing-and-determinism.md) §3
+- **DOTS** — Unity's Data-Oriented Technology Stack: Entities (ECS) + Jobs + Burst. [engines/unity/dots-jobs-and-burst.md](engines/unity/dots-jobs-and-burst.md)
+- **Draw call / batch** — a CPU→GPU submission; count is a CPU-side cost driver, reduced by instancing/batching/atlasing. [performance-and-frame-budgets.md](principles/performance-and-frame-budgets.md) §5
+- **ECS (Entity-Component-System)** — architecture where entities are IDs, components are plain data in arrays, and systems are functions over component queries. [architecture-ecs-vs-oop.md](principles/architecture-ecs-vs-oop.md)
+- **Fixed timestep** — advancing simulation in constant-duration ticks regardless of render rate; prerequisite for determinism, replays, and most netcode. [game-loop-and-timing.md](principles/game-loop-and-timing.md) §1
+- **Fixed-point math** — integer-based fractional arithmetic (e.g. Q16.16); trades float convenience for cross-platform bit-determinism. [guides/build-from-scratch.md](guides/build-from-scratch.md) §1.3
+- **Frame budget** — the per-frame time allowance (16.6ms @ 60fps) allocated per subsystem at worst case, to ~85%. [performance-and-frame-budgets.md](principles/performance-and-frame-budgets.md) §1
+- **GC pause** — stop-the-world (or amortized) garbage-collection time; in games, a scheduled future hitch purchased by per-frame allocation. [performance-and-frame-budgets.md](principles/performance-and-frame-budgets.md) §3
+- **Hitch** — a single frame grossly over budget; perceived as stutter even when average fps is fine. Taxonomy: GC, PSO compile, sync load, physics/spawn burst, OS. [performance-and-frame-budgets.md](principles/performance-and-frame-budgets.md) §6
+- **HLOD** — hierarchical LOD: merged far-distance proxy geometry standing in for unloaded/distant content. [engines/unreal/assets-and-streaming.md](engines/unreal/assets-and-streaming.md) §2
+- **Interest management (relevancy/AOI)** — server-side filtering of which entities replicate to which client; bandwidth tool and wallhack defense. [networking-and-multiplayer.md](principles/networking-and-multiplayer.md) §2
+- **Interpolation (render)** — rendering between the previous and current sim states by the accumulator fraction (alpha) to smooth a fixed-tick sim at any render rate. [game-loop-and-timing.md](principles/game-loop-and-timing.md) §4; for *remote entities*: rendering them ~100–200ms in the past between received snapshots. [networking-and-multiplayer.md](principles/networking-and-multiplayer.md) §3
+- **Lag compensation** — server-side rewind of targets to the shooter's viewed time when validating hits. Bounded; server-tracked timing only. [networking-and-multiplayer.md](principles/networking-and-multiplayer.md) §4
+- **Lockstep (deterministic)** — netcode model where peers exchange only inputs and each simulates identically. [networking-and-multiplayer.md](principles/networking-and-multiplayer.md) §1
+- **LOD** — level of detail: distance/screen-size-selected asset fidelity tiers. [asset-pipeline-and-memory.md](principles/asset-pipeline-and-memory.md) §3
+- **Lumen** — UE5's dynamic global illumination/reflections system; large fixed GPU baseline. [engines/unreal/performance-and-insights.md](engines/unreal/performance-and-insights.md) §4
+- **Nanite** — UE5's virtualized-geometry system; collapses per-mesh draw cost for supported geometry. [engines/unreal/performance-and-insights.md](engines/unreal/performance-and-insights.md) §4
+- **NGO (Netcode for GameObjects)** — Unity's engine-blessed high-level replication for the GameObject workflow. [engines/unity/netcode.md](engines/unity/netcode.md)
+- **Object pooling** — pre-allocating reusable instances to avoid steady-state allocation/instantiation; requires a reset-on-acquire contract. [performance-and-frame-budgets.md](principles/performance-and-frame-budgets.md) §4
+- **p99 frame time** — the frame time at the 99th percentile; the hitch-sensitive metric averages hide. [performance-and-frame-budgets.md](principles/performance-and-frame-budgets.md) §6
+- **PSO (Pipeline State Object) compilation** — GPU pipeline compile at first use of a shader/state combo; the classic first-encounter stutter, prevented by precaching/warmup. [performance-and-frame-budgets.md](principles/performance-and-frame-budgets.md) §6
+- **Reconciliation** — on receiving authoritative state for tick T, the predicted client rewinds to it and replays buffered inputs T+1..now. Rewind *without* replay = rubber-banding. [networking-and-multiplayer.md](principles/networking-and-multiplayer.md) §3
+- **Replication** — automatic propagation of server state to clients (properties/ghosts/snapshots). State vs RPC-event classification is the key discipline. [engines/unreal/networking-and-replication.md](engines/unreal/networking-and-replication.md)
+- **Rollback netcode** — lockstep + speculative execution: simulate with predicted remote inputs, rewind-and-resimulate when real inputs arrive. Requires cheap full-state snapshot/restore. [networking-and-multiplayer.md](principles/networking-and-multiplayer.md) §1
+- **RPC** — remote procedure call between client/server instances of an object; correct for transient events, wrong for persistent state. [engines/unreal/networking-and-replication.md](engines/unreal/networking-and-replication.md) §1
+- **Spiral of death** — feedback loop where simulation slower than real time grows the accumulator, demanding ever more catch-up steps; prevented by clamping. [game-loop-and-timing.md](principles/game-loop-and-timing.md) §3
+- **SRP Batcher** — Unity URP/HDRP draw-submission fast path keyed on shader-compatible material data layout. [engines/unity/performance-and-gc.md](engines/unity/performance-and-gc.md) §3
+- **Tick / tick rate** — one fixed simulation step / the number of such steps per second (server tick rate: how often the server simulates+sends). [game-loop-and-timing.md](principles/game-loop-and-timing.md) §1
+- **Variable timestep** — advancing sim by measured frame delta; acceptable only where determinism/networking/replays are permanently out of scope. [game-loop-and-timing.md](principles/game-loop-and-timing.md) §1
+- **VSM (Virtual Shadow Maps)** — UE5 high-resolution paged shadows; cost driven by page invalidation from movement. [engines/unreal/performance-and-insights.md](engines/unreal/performance-and-insights.md) §4
+- **World Partition** — UE5's grid-based automatic level streaming for large worlds. [engines/unreal/assets-and-streaming.md](engines/unreal/assets-and-streaming.md) §2

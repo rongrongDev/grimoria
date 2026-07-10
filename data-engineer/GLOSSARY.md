@@ -1,0 +1,55 @@
+# Glossary — shared vocabulary for `data-engineer/`
+
+**Last verified:** 2026-07-06 · One canonical definition per term, as used throughout this KB. Deep treatment lives in the doc cited after each entry.
+
+- **Additivity** — whether a measure can be summed along a dimension. *Fully additive* (amounts): sum anywhere. *Semi-additive* (balances, inventory): never sum over time. *Non-additive* (ratios): store numerator/denominator instead. → `principles/data-modeling.md` §2
+- **AQE (Adaptive Query Execution)** — Spark's runtime re-planning (3.2+, on by default): coalesces shuffle partitions, switches to broadcast joins, splits skewed partitions. → `stacks/spark.md` §1
+- **Backfill** — bulk re-run of a pipeline over historical windows. Treated in this KB as a scheduled production incident: requires idempotency proof, cost estimate, concurrency cap, anachronism check, downstream rebuild plan, and validation. → `principles/pipeline-correctness.md` §3
+- **Blast radius** — the set of downstream consumers affected by a change to a table/topic/column. Mapped *before* the change, via lineage. → `principles/observability-and-lineage.md` §3; `lineage-blast-radius-scanner` agent
+- **Broadcast join** — join strategy that copies the small side to every worker instead of shuffling the big side. Fails destructively when the "small" side isn't. → `stacks/spark.md` §2
+- **Catchup** — an orchestrator running every missed scheduled window after a pause/outage. Must be matched to the pipeline's idempotency posture or it duplicates (on) / silently gaps (off). → `principles/orchestration.md` §3
+- **CDC (change data capture)** — streaming a source database's row-level changes (inserts/updates/deletes) as events, typically consumed via MERGE with a recency guard. → `principles/pipeline-correctness.md` §1
+- **Compaction** — (1) rewriting many small files into fewer large ones (lake/table formats, a scheduled job, not optional); (2) Kafka topic mode keeping only the latest record per key. → `stacks/lake-table-formats.md` §4; `stacks/kafka.md` §1
+- **Conformed dimension** — a single shared dimension (one `dim_customer`) used by all facts, so cross-fact analysis agrees. → `principles/data-modeling.md` §2
+- **Consumer group / offset** — Kafka's consumption model: a group splits partitions among members; each tracks its position (offset) per partition. Offset-commit ordering vs effect determines loss/duplication. → `stacks/kafka.md` §1, §3
+- **Contract (data contract)** — versioned, CI-enforced agreement on an interface: schema + semantics + grain + freshness SLA + quality assertions. The machine positioned to say no at team boundaries. → `principles/schema-evolution.md` §5; `principles/data-quality.md` §6
+- **Control total** — a source-provided count/sum (manifest) that the pipeline reconciles against after loading. The strongest data-quality test available. → `principles/data-quality.md` §2
+- **CoW / MoR (copy-on-write / merge-on-read)** — table-format update strategies: rewrite files on write (fast reads) vs write deltas merged at read (fast writes, requires scheduled compaction). → `stacks/lake-table-formats.md`
+- **Crypto-shredding** — erasing data by destroying its per-subject encryption key; the practical deletion mechanism for immutable logs, archives, and backups. → `principles/security-and-governance.md` §3
+- **Dead-letter queue (DLQ)** — a side channel for messages/rows that fail processing, letting the pipeline continue. Must be monitored — an unwatched DLQ is silent data loss with better manners. → `stacks/kafka.md` §3
+- **Dedup key** — a stable identifier (`event_id`, natural-key hash) carried by every record so duplicates from at-least-once delivery can be collapsed downstream. → `principles/pipeline-correctness.md` §1
+- **Dynamic partition overwrite** — Spark write mode replacing only the partitions present in the written data. The static default truncates the whole table — a destructive footgun. → `stacks/spark.md` §6
+- **Exactly-once (effectively-once)** — the achievable guarantee: at-least-once delivery + idempotent/transactional effects. True exactly-once holds only within one transactional boundary (e.g., Kafka-in→Kafka-out) and dies at its edge. → `principles/pipeline-correctness.md` §2; `stacks/kafka.md` §4
+- **Expand → migrate → contract** — the only safe sequence for breaking interface changes: ship new alongside old, move consumers with a deadline, remove old only on *evidence* of zero readers. → `principles/schema-evolution.md` §3
+- **Exposure** — a dbt declaration of a downstream consumer (dashboard, ML job, export), making it visible to lineage and impact analysis. → `stacks/dbt.md` §7
+- **Fan-out (join)** — row multiplication when joining to a finer-grained table; the classic cause of silently inflated aggregates. → `principles/data-modeling.md` §1
+- **Freshness** — how current a table is, measured as recency of `MAX(event_time)` against an SLA (not load time, not task success). One of the three vital signs. → `principles/observability-and-lineage.md` §2
+- **Grain** — what one row means (one row per order? per order-line per day?). A table's most important property; declared in docs and enforced with a uniqueness test. → `principles/data-modeling.md` §1
+- **Idempotency** — running a task for the same window any number of times converges to the same state. The three sanctioned write patterns: partition overwrite, keyed MERGE, append+dedup. → `principles/pipeline-correctness.md` §1
+- **KRaft** — Kafka's built-in consensus (metadata) mode, replacing ZooKeeper entirely as of Kafka 4.0. → `stacks/kafka.md`
+- **Late-arriving data** — records whose event time falls in a window already processed/published. Handled by explicit policy: lookback reprocessing, restatement window, or sealed windows + quarantine — never silently dropped. → `principles/pipeline-correctness.md` §4
+- **Late-arriving dimension** — a fact arriving before its dimension row; handled with placeholder dimension members, never inner-joined away. → `principles/data-modeling.md` §2
+- **Lineage** — the graph of what reads/writes what, from sources to dashboards. Evidence layers, most trustworthy first: execution-derived (access history), declared (manifest/registry), grep. → `principles/observability-and-lineage.md` §3
+- **Logical date / data interval** — the window a run is *for* (assigned by the orchestrator), as opposed to when it executes. All windowing derives from it; wall-clock windowing is a defect. → `principles/orchestration.md` §1; `stacks/airflow.md` §1
+- **Lookback window** — the trailing N windows a run reprocesses to absorb late data; N derived from the measured lateness distribution (P99), not vibes. → `principles/pipeline-correctness.md` §4
+- **Mart** — the consumer-facing model layer (facts + dimensions), contracted and tested; the only layer BI/consumers query. → `stacks/dbt.md` §1
+- **Micro-partition** — Snowflake's immutable ~16MB storage unit with per-column min/max metadata; pruning against that metadata is the performance model. → `stacks/snowflake.md` §1
+- **Partition pruning** — skipping storage units whose metadata proves they can't match the filter. Defeated by function-wrapped predicates. The core of both cost and speed. → `principles/cost-and-performance.md` §2
+- **Poison pill** — a malformed message that crashes a consumer on every redelivery, blocking its whole partition until dead-lettered. → `stacks/kafka.md` §3
+- **Quarantine** — routing rows/messages that fail validation to a holding table/topic (with a volume monitor) instead of blocking the pipeline or loading garbage. → `principles/data-quality.md` §1
+- **Reconciliation** — comparing counts/sums between two systems that should agree (source vs sink, stream vs batch, fact vs aggregate). The only defense for dual-path architectures. → `principles/data-quality.md` §2
+- **Restatement** — published numbers changing after later data/corrections arrive. Legitimate when governed by a declared window ("final at T+4"); trust-destroying when silent. → `principles/pipeline-correctness.md` §4
+- **Salting** — appending a random suffix to hot keys to spread one key's rows across partitions, defeating skew in joins/aggregations. → `stacks/spark.md` §3
+- **SCD (slowly changing dimension)** — how dimension history is kept: **Type 1** overwrite (rewrites history), **Type 2** versioned rows with validity windows (as-of truth; the default for finance/ML), **Type 3** previous-value column (single planned transition only). → `principles/data-modeling.md` §3
+- **Schema registry** — the service that validates every new stream schema version against a compatibility mode at registration — contract enforcement with teeth. → `stacks/kafka.md` §5
+- **Sealed window** — a window declared final after N days; later arrivals go to quarantine rather than restating published numbers. → `principles/pipeline-correctness.md` §4
+- **Seam** — the boundary between differently-produced ranges of the same table (backfill edge meeting live runs); where duplicates concentrate and validation focuses. → `principles/pipeline-correctness.md` §3
+- **Shuffle** — physically redistributing rows across the network by key for wide operations (join, groupBy); the most expensive thing a distributed engine does. → `stacks/spark.md` §1
+- **Skew** — one key holding vastly more rows than the median, making one task/partition the straggler that the whole stage waits (and bills) for. → `stacks/spark.md` §3; `stacks/kafka.md` §2
+- **Small-file problem** — thousands of tiny files whose per-file overhead dwarfs data-read time; born from over-parallel or high-frequency writers; fixed by scheduled compaction and writer sizing. → `stacks/spark.md` §5
+- **Snapshot (table-format)** — a committed table version enabling time travel and rollback; retained snapshots pin storage and retain "deleted" data until expired. → `stacks/lake-table-formats.md`
+- **Star schema** — facts surrounded by denormalized dimensions; the default consumer-facing shape in columnar warehouses. → `principles/data-modeling.md` §2
+- **Surrogate key** — a pipeline-assigned key (hash/sequence) decoupled from source natural keys; required for SCD2 and protection against source key reuse. → `principles/data-modeling.md` §2
+- **Vital signs** — the three per-table monitors that catch "succeeded but wrong": freshness, volume, schema drift. → `principles/observability-and-lineage.md` §2
+- **Watermark** — a stream's moving claim that all events ≤ time W have (probably) arrived, used to close windows. It's the minimum across partitions — one stalled source freezes it. Streaming's version of the lookback/lateness decision. → `principles/pipeline-correctness.md` §5
+- **Window (logical window)** — the unit of data a run owns (an hour, a day), the unit of idempotent overwrite, retry, and backfill. → `principles/pipeline-correctness.md` §1
