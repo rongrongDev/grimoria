@@ -1,0 +1,16 @@
+# OS
+.DS_Store
+
+# Editors
+.vscode/
+.idea/
+
+# Node / Astro (webapp)
+node_modules/
+webapp/dist/
+webapp/.astro/
+
+# Env & logs
+.env
+.env.*
+*.log
