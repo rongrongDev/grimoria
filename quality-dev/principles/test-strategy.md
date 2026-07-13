@@ -1,8 +1,8 @@
 # Test Strategy — what to test, at which layer, and why
 
-**Applies to:** tool-agnostic (examples reference Playwright 1.5x, Vitest 3.x, Pact 12+) · **Last verified:** 2026-07-06
+**Applies to:** tool-agnostic (examples reference Playwright 1.5x+, Vitest 3.x–4.x, pact-js 12–16) · **Last verified:** 2026-07-13
 **Standalone:** yes. Terms: a *unit test* exercises one module in isolation; an *integration test* exercises real components together within one deployable; an *E2E test* drives the deployed system through its real interface; a *contract test* verifies two services agree on their API without deploying both.
-**Related:** `quality-dev/playbooks/build-a-test-strategy-from-scratch.md` (procedure), `.claude/skills/test-strategy-planner/SKILL.md` (invokable version), `quality-dev/principles/ci-cd-integration.md` (where each layer runs).
+**Related:** `quality-dev/playbooks/build-a-test-strategy-from-scratch.md` (procedure), `quality-dev/skills/test-strategy-planner/SKILL.md` (invokable version), `quality-dev/principles/ci-cd-integration.md` (where each layer runs).
 
 ## The one rule that outranks all shapes
 

@@ -1,6 +1,6 @@
 # Concurrency & Async Testing — forcing the race instead of fearing it
 
-**Applies to:** concept doc; examples use Vitest 3.x fake timers, Playwright 1.5x, Node 22 · **Last verified:** 2026-07-06
+**Applies to:** concept doc; examples use Vitest fake timers (3.x–4.x API-identical here), Playwright 1.5x+, Node 24 LTS · **Last verified:** 2026-07-13
 **Standalone:** yes. Definitions: a *race condition* is behavior that depends on the relative timing of concurrent operations. *Deterministic waiting* means a test proceeds when an observable condition holds, never after a fixed delay. *Idempotency* means doing an operation twice has the same effect as once.
 **Related:** `quality-dev/principles/flakiness.md` (race conditions as flake cause #1 and #6), `quality-dev/tools/jest-vitest.md` (fake timers mechanics), `quality-dev/tools/playwright.md` (web-first assertions).
 
@@ -56,7 +56,7 @@ Retry logic is code that runs rarely and fails expensively, which is exactly the
 | Failure mode | Detection | Fix | Prevention |
 |---|---|---|---|
 | Sleeps encoding timing assumptions | grep `waitForTimeout|sleep\(|setTimeout` in test dirs; suite dead-air time | Replace via hierarchy above | ESLint `no-restricted-syntax` ban in test paths; CI grep-gate |
-| "Exactly once" never tested concurrently | No `Promise.all`-style race test on redemption/booking/dedup paths | Add N-way concurrent invariant test per claim | Strategy checklist: every uniqueness/exactly-once requirement names its race test (`.claude/skills/test-strategy-planner`) |
+| "Exactly once" never tested concurrently | No `Promise.all`-style race test on redemption/booking/dedup paths | Add N-way concurrent invariant test per claim | Strategy checklist: every uniqueness/exactly-once requirement names its race test (`quality-dev/skills/test-strategy-planner`) |
 | Real time in backoff/TTL tests | Test wall time > 1s; timeouts in CI | Fake timers + virtual-time advancement | Test-time budget lint (fail tests exceeding 2s locally); review flag on `new Date()`/`Date.now()` in logic under test without injection |
 | Retry storm shipped | Retry tests assert success only, never schedule/give-up | Assert delays, jitter bounds, terminal behavior | Code review pairing rule: retry PRs require schedule assertions |
 | Double-submit family | No UI test fires an action twice | Add double-fire tests on all money/mutation buttons | Component-library-level guard (idempotent submit hook) + one test per money form |
@@ -64,6 +64,6 @@ Retry logic is code that runs rarely and fails expensively, which is exactly the
 
 ## Cross-references
 
-- Was that flake a test race or a product race? Taxonomy and signatures: `quality-dev/principles/flakiness.md` (#1 vs #6); single-test workup: `.claude/skills/flaky-test-diagnoser/SKILL.md`.
+- Was that flake a test race or a product race? Taxonomy and signatures: `quality-dev/principles/flakiness.md` (#1 vs #6); single-test workup: `quality-dev/skills/flaky-test-diagnoser/SKILL.md`.
 - Fake-timer sharp edges (microtasks vs macrotasks, `advanceTimersByTimeAsync`): `quality-dev/tools/jest-vitest.md`.
 - Playwright's auto-waiting model and its limits: `quality-dev/tools/playwright.md`.

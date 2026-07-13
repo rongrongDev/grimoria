@@ -1,6 +1,6 @@
 # Performance & Load Testing — what "passing" actually licenses you to claim
 
-**Applies to:** concept doc; examples use k6 1.x · **Last verified:** 2026-07-06
+**Applies to:** concept doc; examples use k6 1.x (executors unchanged in 2.x) · **Last verified:** 2026-07-13
 **Standalone:** yes. Definitions: *latency* = time to serve one request (reported as percentiles: p50/p95/p99); *throughput* = requests served per second; *open workload model* = requests arrive at a set rate regardless of how the system responds; *closed model* = a fixed pool of virtual users each waits for a response before sending the next request; *coordinated omission* = the measurement error where a slow system causes the load generator to sample it less, flattering the numbers.
 **Related:** `quality-dev/tools/k6.md` (mechanics), `quality-dev/principles/ci-cd-integration.md` (where load stages run).
 

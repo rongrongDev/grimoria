@@ -1,8 +1,8 @@
 # Mutation Testing — measuring whether your tests would notice
 
-**Applies to:** concept doc; examples use StrykerJS 8.x · **Last verified:** 2026-07-06
+**Applies to:** concept doc; examples use StrykerJS 8.x (valid unchanged on 9.x) · **Last verified:** 2026-07-13
 **Standalone:** yes. Definitions: *mutation testing* tooling makes small deliberate changes ("mutants") to production code — `>=` → `>`, `+` → `-`, delete a statement, force a boolean — and re-runs your tests against each mutant. A mutant is *killed* if any test fails, *survived* if all pass. *Mutation score* = killed ÷ (total − ignored/equivalent).
-**Related:** `quality-dev/tools/stryker.md` (running it), `.claude/agents/mutation-gap-analyzer.md` (bulk interpretation), `quality-dev/principles/test-strategy.md` (where verification strength matters most).
+**Related:** `quality-dev/tools/stryker.md` (running it), `quality-dev/agents/mutation-gap-analyzer.md` (bulk interpretation), `quality-dev/principles/test-strategy.md` (where verification strength matters most).
 
 ## What a mutation score tells you that line coverage cannot
 
@@ -59,5 +59,5 @@ Mutation testing is expensive by construction: roughly (number of mutants) × (t
 ## Operational notes
 
 - Run mutation testing **only on a green suite**. Mutants "killed" by an already-flaky test are lies in both directions; fix flakiness first (`quality-dev/principles/flakiness.md`).
-- A mutation run's survivor report across a whole module is thousands of lines of low-density output. Don't paste it into a working context — dispatch the `mutation-gap-analyzer` subagent (`.claude/agents/mutation-gap-analyzer.md`), which runs Stryker, applies the classification tree above, and returns only the ranked, classified gaps.
+- A mutation run's survivor report across a whole module is thousands of lines of low-density output. Don't paste it into a working context — dispatch the `mutation-gap-analyzer` subagent (`quality-dev/agents/mutation-gap-analyzer.md`), which runs Stryker, applies the classification tree above, and returns only the ranked, classified gaps.
 - Score comparisons are only meaningful with identical config (same mutators, same `mutate` globs, same ignores). Pin the config in the repo; changes to it go through `quality-dev/CHANGELOG.md`.

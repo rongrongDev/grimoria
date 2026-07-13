@@ -1,8 +1,8 @@
 # StrykerJS — running mutation testing without burning the team out
 
-**Applies to:** StrykerJS 8.x with Vitest 3.x / Jest 29–30 runners · **Last verified:** 2026-07-06
+**Applies to:** StrykerJS 8.x–9.x with Vitest 2+ / Jest 29–30 runners · **Last verified:** 2026-07-13 (against StrykerJS 9.6; config fields below re-checked, all still valid in 9.x)
 **Standalone:** yes. Quick definitions: Stryker generates *mutants* (small code changes: `>=`→`>`, `+`→`-`, boolean flips, statement removal) and re-runs your tests per mutant. *Killed* = a test failed (good). *Survived* = suite stayed green despite changed code (a verification gap, dead code, or an equivalent mutant). *Mutation score* = killed ÷ (total − ignored).
-**Related principles:** what the score means and the survivor decision tree — `quality-dev/principles/mutation-testing.md` (read it first; this doc is mechanics). Bulk interpretation across a module — `.claude/agents/mutation-gap-analyzer.md`.
+**Related principles:** what the score means and the survivor decision tree — `quality-dev/principles/mutation-testing.md` (read it first; this doc is mechanics). Bulk interpretation across a module — `quality-dev/agents/mutation-gap-analyzer.md`.
 
 ## Setup that survives contact with a real repo
 
@@ -37,6 +37,7 @@ npx stryker init
 - **`coverageAnalysis: "perTest"`** is non-negotiable for usable runtimes; it needs a clean, *deterministic* suite — mutation testing on a flaky suite lies in both directions (a flake "kills" a mutant randomly; fix flakiness first: `quality-dev/principles/flakiness.md`).
 - **`incremental: true`** re-tests only mutants affected by changed code/tests. Persist `.stryker-incremental.json` in CI cache keyed on branch; this is what makes PR-time mutation affordable.
 - Trim noisy mutators when they prove noisy *for you* (typically `StringLiteral` in logging, `ObjectLiteral` in config): `"mutator": { "excludedMutations": ["StringLiteral"] }` — but only after triage shows they're noise, not before.
+- **9.x upgrade notes (verified 2026-07-13):** Node 20+ required; the vitest-runner needs Vitest 2+; `disableTypeChecks` now defaults to `true` (set it explicitly if you were relying on type-check errors killing mutants); 9.6 adds percentage-based `concurrency` (e.g. `"50%"`) and `--testFiles` to scope which tests execute. Every config field in the sample above is unchanged.
 
 ## The two-track operating pattern (the one that doesn't get turned off)
 

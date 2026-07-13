@@ -1,6 +1,6 @@
 # Multi-Agent Orchestration for Quality Work
 
-**Applies to:** Claude-class agents (Haiku/Sonnet/Opus) operating on test suites via the Skills/Subagents in this KB · **Last verified:** 2026-07-06
+**Applies to:** Claude-class agents (Haiku/Sonnet/Opus) operating on test suites via the Skills/Subagents in this KB · **Last verified:** 2026-07-13
 **Standalone:** yes. Scope: how to *divide quality work among multiple AI agents* — role splits, fan-out patterns, and the failure modes specific to agents doing test work. This is not a restatement of the testing content; it's about the workforce. The testing judgment lives in `quality-dev/principles/`; agents doing the work below must be pointed at those docs.
 
 ## Why quality work needs different orchestration rules
@@ -35,7 +35,7 @@ Auditing test health across many services (quarterly review, post-incident sweep
 - **One subagent per repo**, each executing `test-suite-auditor` with the same rubric version, returning *only* the Playbook B report template — never raw logs. The fixed template is what makes 30 reports aggregatable; free-form agent summaries cannot be compared or trended.
 - **Concurrency cap** (~5): the constraint is shared infrastructure — 30 agents simultaneously running Stryker and repeat-each loops will DoS your CI runners and produce the very resource-contention flakes they're hunting (taxonomy #5). Stagger; give mutation runs a dedicated runner pool.
 - **Aggregator agent** merges reports into a fleet view: rank by (verification quality grade × business criticality), surface *systemic* findings separately (same missing authz pattern in 12 repos ⇒ one platform fix, not 12 tickets).
-- **Read-only enforcement:** audit agents get no write tools (see the subagent allowlists in `.claude/agents/`). An auditor that can edit will eventually "helpfully fix" what it was sent to measure, and your fleet report becomes a fleet diff.
+- **Read-only enforcement:** audit agents get no write tools (see the subagent allowlists in `quality-dev/agents/`). An auditor that can edit will eventually "helpfully fix" what it was sent to measure, and your fleet report becomes a fleet diff.
 
 ## Failure modes of agents doing quality work
 
@@ -47,7 +47,7 @@ Auditing test health across many services (quarterly review, post-incident sweep
 | 4 | **Test deletion / skip creep** — `.skip` added to "unblock" | Same as #3, one step blunter | `.skip`/deleted-test count in diff | CI gate: skips/deletions require a linked ticket ID in the diff; reviewer rejects otherwise |
 | 5 | **Overfitting to implementation** — tests assert internal call sequences, pass only for this exact code | Agent reads the implementation and mirrors it (it has the code in context; a human writes from the spec) | Refactor breaks tests, bugs don't; heavy `toHaveBeenCalledWith` on internals | Writer receives the *spec/strategy artifact*, not the implementation, where feasible; mock-count review rule (>3 ⇒ wrong layer, `quality-dev/tools/jest-vitest.md`) |
 | 6 | **Flake-fixing the symptom test** while the product race ships | Agent scoped to "make test X pass" will fix test X even when X is right (taxonomy #6 — the checkout-email story, `quality-dev/principles/flakiness.md`) | "Fix" changes only test code on a failure whose signature is user-visible wrongness | Diagnoser contract (in the skill) requires explicit test-race vs product-race classification *before* any fix; product-race classification halts the agent and files a bug |
-| 7 | **Report flooding** — subagent returns 4,000 lines of logs to the caller | Agents default to showing work | Caller context exhausted; conclusions buried | Subagent output contracts cap size and fix the template (see `.claude/agents/*.md`); raw artifacts go to files, not messages |
+| 7 | **Report flooding** — subagent returns 4,000 lines of logs to the caller | Agents default to showing work | Caller context exhausted; conclusions buried | Subagent output contracts cap size and fix the template (see `quality-dev/agents/*.md`); raw artifacts go to files, not messages |
 
 ## Model-tier guidance
 

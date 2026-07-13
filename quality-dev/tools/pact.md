@@ -1,6 +1,6 @@
 # Pact — consumer-driven contracts, mechanically
 
-**Applies to:** pact-js 12.x+ (V3/V4 spec), Pact Broker (OSS) / PactFlow (SaaS) · **Last verified:** 2026-07-06
+**Applies to:** pact-js 12.x–16.x (V3/V4 spec), Pact Broker (OSS) / PactFlow (SaaS) · **Last verified:** 2026-07-13 (against pact-js 16.x — requires Node 20+; the V4 builder API below is unchanged, but in 16.x `PactV4`/`MatchersV3` are also exported as the default `Pact`/`Matchers`, and the old V2 classes were renamed `PactV2`/`MatchersV2` — pin your imports accordingly when upgrading)
 **Standalone:** yes. Definitions: the *consumer* calls an API; the *provider* serves it. A *pact* is a JSON file of interactions the consumer verified against a Pact mock; *provider verification* replays those interactions against the real provider; the *broker* stores pacts/verification results and answers `can-i-deploy`. A *provider state* is a named precondition ("user 42 exists") the provider sets up before replay.
 **Related principles:** when contracts beat E2E and the expand→migrate→contract versioning strategy — `quality-dev/principles/contract-and-integration-testing.md` (read first; this doc is mechanics).
 

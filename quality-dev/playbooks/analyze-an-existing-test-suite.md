@@ -1,8 +1,8 @@
 # Playbook B — Analyze an Existing Test Suite (bounded time budget)
 
-**Applies to:** any unfamiliar JS/TS suite (patterns port to other stacks); tools referenced: Vitest/Jest, Playwright, Stryker 8.x · **Last verified:** 2026-07-06
+**Applies to:** any unfamiliar JS/TS suite (patterns port to other stacks); tools referenced: Vitest/Jest, Playwright, Stryker 8.x–9.x · **Last verified:** 2026-07-13
 **Standalone:** yes — followable with no other context. **Time budget: 4 hours** for a mid-sized service (adjust proportionally; the *ratios* between phases matter more than the total).
-**Agent-invokable version:** `.claude/skills/test-suite-auditor/SKILL.md` executes this playbook and emits the report template below. For CI-history flake ranking at scale, dispatch `.claude/agents/ci-flake-history-scanner.md`; for mutation interpretation at scale, `.claude/agents/mutation-gap-analyzer.md`.
+**Agent-invokable version:** `quality-dev/skills/test-suite-auditor/SKILL.md` executes this playbook and emits the report template below. For CI-history flake ranking at scale, dispatch `quality-dev/agents/ci-flake-history-scanner.md`; for mutation interpretation at scale, `quality-dev/agents/mutation-gap-analyzer.md`.
 
 The core stance: **coverage numbers are the last thing you look at, not the first.** A suite's quality is what its tests would *catch*, and you learn that by reading tests and mutating code, not by reading dashboards. The 100%-coverage-shipped-a-critical-bug story (`quality-dev/principles/test-strategy.md`) is the null hypothesis you're testing against.
 

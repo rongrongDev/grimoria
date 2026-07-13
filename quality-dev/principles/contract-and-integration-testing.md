@@ -1,6 +1,6 @@
 # Contract & Integration Testing — verifying the seams without staging roulette
 
-**Applies to:** concept doc; examples use Pact (pact-js 12+), supertest 7.x, Testcontainers · **Last verified:** 2026-07-06
+**Applies to:** concept doc; examples use Pact (pact-js 12–16), supertest 7.x, Testcontainers · **Last verified:** 2026-07-13
 **Standalone:** yes. Definitions: an *integration test* exercises real components together within one deployable (your handler + a real database), with external services faked at the network boundary. A *contract test* verifies that two independently deployed services agree on their interface without deploying either against the other. In *consumer-driven* contract testing (Pact), the consumer records the interactions it relies on; the provider replays them against its real code.
 **Related:** `quality-dev/tools/pact.md` (mechanics), `quality-dev/tools/api-testing.md` (HTTP testing), `quality-dev/principles/test-strategy.md` (layer selection), `quality-dev/principles/flakiness.md` (shared-state root causes).
 
@@ -67,5 +67,5 @@ Rules, in priority order:
 
 - Running Pact end to end, broker setup, webhook wiring: `quality-dev/tools/pact.md`
 - In-process HTTP integration testing patterns: `quality-dev/tools/api-testing.md`
-- Planning which seams deserve contracts for a new feature: `.claude/skills/test-strategy-planner/SKILL.md`
+- Planning which seams deserve contracts for a new feature: `quality-dev/skills/test-strategy-planner/SKILL.md`
 - Auditing an inherited suite's integration layer: `quality-dev/playbooks/analyze-an-existing-test-suite.md`

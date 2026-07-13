@@ -1,6 +1,6 @@
 # Selenium — legacy web E2E production patterns & pitfalls (extended tier)
 
-**Applies to:** Selenium 4.2x (W3C WebDriver, Selenium Manager, Grid 4) · **Last verified:** 2026-07-06
+**Applies to:** Selenium 4.2x–4.4x (W3C WebDriver, Selenium Manager, Grid 4) · **Last verified:** 2026-07-13 (against Selenium 4.46; no 4.x release has invalidated the stewardship patterns below — Selenium Manager and Grid 4 guidance unchanged)
 **Tier note:** extended — production patterns + pitfalls for *maintaining* Selenium estates. For new suites, use Playwright (`quality-dev/tools/playwright.md`); this doc exists because large Selenium suites are still load-bearing in 2026 and deserve competent stewardship, not fashion-driven rewrites.
 
 ## Production patterns

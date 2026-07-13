@@ -1,6 +1,6 @@
 # Jest / Vitest — unit & integration mechanics without self-deception
 
-**Applies to:** Vitest 3.x, Jest 29–30 · **Last verified:** 2026-07-06
+**Applies to:** Vitest 3.x–4.x, Jest 29–30 · **Last verified:** 2026-07-13 (against Vitest 4.1, Jest 30.x)
 **Standalone:** yes. 2026 default: **Vitest** for new projects (ESM-native, fast, Jest-compatible API); keep Jest where it's entrenched — the patterns below are written once and noted where the two diverge.
 **Related principles:** what belongs at unit vs integration layer — `quality-dev/principles/test-strategy.md`; fake timers in anger — `quality-dev/principles/concurrency-and-async-testing.md`; whether these tests verify anything — `quality-dev/principles/mutation-testing.md`.
 
@@ -58,6 +58,12 @@ Snapshot tests fail toward *ritual approval*: the diff appears, the developer pr
 | Leaked mock/timer state between tests | Fails in suite, passes alone; shuffle canary red | `mockReset` config; real timers in `afterEach` | Shuffle permanently on; global `afterEach` hygiene in setup file |
 | Snapshot ritual approval | Snapshot updates in most PRs; giant `.snap` files | Replace with targeted asserts; inline-only policy | Size cap on snapshots (lint); PR template asks "why is each snapshot diff correct?" |
 | Slow unit stage | Stage 1 budget breach (`quality-dev/principles/ci-cd-integration.md`) | Move DB-touching tests to integration stage; pool workers (Vitest `pool: 'threads'`) | Wall-time trend alarm per stage |
+
+## What changed in Vitest 4 (verified 2026-07-13)
+
+- **Browser mode is stable** — real-browser component tests instead of jsdom approximations. Providers are now separate packages (`@vitest/browser-playwright`, `@vitest/browser-webdriverio`, `@vitest/browser-preview`); installing one is the main migration step. This gives the testing trophy's component layer a first-class home; everything in this doc about assertions, mocking discipline, and isolation applies unchanged in browser mode.
+- **Built-in visual regression** (`toMatchScreenshot`, browser mode) — the self-hosted component-level option; the review-discipline rules in `quality-dev/tools/visual-regression.md` apply to it in full, because the tool changes nothing about the ritual-approval failure mode.
+- Mock/timer semantics documented above (hoisting, `mockReset`, async timer advancement) are unchanged in 4.x — re-verified against the 4.0 migration guide. Two 4.0 gotchas: `vi.restoreAllMocks()` no longer resets spy state (only restores manually created spies), and **coverage reports only files touched by tests unless `coverage.include` is set** — an unchanged coverage number after upgrade may mean the denominator shrank, not that coverage held. Pool options moved top-level (`maxWorkers` replaces `maxThreads`/`maxForks`); `workspace` config is now `projects`.
 
 ## Jest ↔ Vitest migration notes (only what bites)
 

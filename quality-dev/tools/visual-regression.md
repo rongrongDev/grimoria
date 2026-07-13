@@ -1,6 +1,6 @@
 # Visual Regression — Percy/Chromatic production patterns & pitfalls (extended tier)
 
-**Applies to:** Percy & Chromatic SaaS (current as of date), Playwright `toHaveScreenshot` for self-hosted · **Last verified:** 2026-07-06
+**Applies to:** Percy & Chromatic SaaS, Playwright `toHaveScreenshot` for self-hosted · **Last verified:** 2026-07-13 (SaaS products and `toHaveScreenshot` re-checked against current docs; patterns unchanged)
 **Tier note:** extended — production patterns + pitfalls. Where visual testing fits strategy: it verifies *appearance*, which functional tests structurally cannot — and it fails toward the same ritual-approval trap as snapshot tests (`quality-dev/tools/jest-vitest.md`), so its discipline section matters more than its setup section.
 
 ## When it earns its keep (and when it doesn't)

@@ -40,4 +40,4 @@ Prioritization rule: P0 = unguarded high-impact risks + flake-masking *policy* (
 
 ## References
 
-Full playbook with time-boxes: `quality-dev/playbooks/analyze-an-existing-test-suite.md` · Grading rationale: `quality-dev/principles/test-strategy.md`, `quality-dev/principles/mutation-testing.md` · Taxonomy: `quality-dev/principles/flakiness.md` · Deep helpers: `.claude/agents/ci-flake-history-scanner.md`, `.claude/agents/mutation-gap-analyzer.md`
+Full playbook with time-boxes: `quality-dev/playbooks/analyze-an-existing-test-suite.md` · Grading rationale: `quality-dev/principles/test-strategy.md`, `quality-dev/principles/mutation-testing.md` · Taxonomy: `quality-dev/principles/flakiness.md` · Deep helpers: `quality-dev/agents/ci-flake-history-scanner.md`, `quality-dev/agents/mutation-gap-analyzer.md`

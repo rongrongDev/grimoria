@@ -1,6 +1,6 @@
 # Accessibility Testing — what automation catches, and the majority it can't
 
-**Applies to:** concept doc; examples use axe-core 4.10, WCAG 2.2 AA · **Last verified:** 2026-07-06
+**Applies to:** concept doc; examples use axe-core 4.10–4.12, WCAG 2.2 AA · **Last verified:** 2026-07-13
 **Standalone:** yes. Definitions: *WCAG* = Web Content Accessibility Guidelines, the standard behind most legal requirements; *axe-core* = the de-facto automated rule engine (embedded in Playwright/Cypress integrations, Lighthouse, browser devtools); *AT* = assistive technology (screen readers, switch devices, magnifiers).
 **Related:** `quality-dev/tools/axe-core.md` (integration mechanics), `quality-dev/principles/ci-cd-integration.md` (gating), `quality-dev/tools/playwright.md` (where scans hook in).
 

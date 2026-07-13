@@ -1,8 +1,8 @@
 # Playbook A — Build a Test Strategy From Scratch
 
-**Applies to:** any new feature/service; worked example uses Vitest 3.x, Stryker 8.x, Pact 12+, Playwright 1.5x, k6 1.x · **Last verified:** 2026-07-06
+**Applies to:** any new feature/service; worked example uses Vitest 3.x, Stryker 8.x, Pact 12+, Playwright 1.5x, k6 1.x — all patterns re-checked valid on the current majors (Vitest 4, Stryker 9, pact-js 16, Playwright 1.61, k6 2) · **Last verified:** 2026-07-13
 **Standalone:** yes — followable start-to-finish with no other context. Deeper rationale per step is linked, never required.
-**Agent-invokable version:** `.claude/skills/test-strategy-planner/SKILL.md` executes this playbook with a defined output contract.
+**Agent-invokable version:** `quality-dev/skills/test-strategy-planner/SKILL.md` executes this playbook with a defined output contract.
 
 You are designing the test strategy for a new feature or service. Work the seven steps in order; each produces a written artifact. Total effort for a mid-sized service: about a day, most of it step 1 — which is the step teams skip, and the reason their suites test what was easy instead of what was dangerous.
 

@@ -1,6 +1,6 @@
 # CI/CD Integration — pipeline architecture, gating policy, and the politics of red
 
-**Applies to:** concept doc; examples assume GitHub-Actions-class CI, Playwright 1.5x sharding, Vitest 3.x · **Last verified:** 2026-07-06
+**Applies to:** concept doc; examples assume GitHub-Actions-class CI, Playwright 1.5x+ sharding, Vitest 3.x–4.x · **Last verified:** 2026-07-13
 **Standalone:** yes. Definitions: a check *blocks merge* when the PR cannot land while it's red; *advisory* checks report without blocking; *quarantine* removes a flaky test from the blocking set while keeping it running and tracked; *sharding* splits one suite across parallel machines; *test impact analysis* selects tests based on what changed.
 **Related:** `quality-dev/principles/flakiness.md` (retry/quarantine judgment), `quality-dev/principles/test-strategy.md` (what exists to be gated), tool mechanics in `quality-dev/tools/`.
 
@@ -68,5 +68,5 @@ The meta-rule: **block on what is deterministic, fast, and attributable to this 
 ## Cross-references
 
 - What the stages should contain for a brand-new service: `quality-dev/playbooks/build-a-test-strategy-from-scratch.md` (step 5 produces this doc's tables filled in)
-- Ranking existing flakes before setting thresholds: `.claude/agents/ci-flake-history-scanner.md`
+- Ranking existing flakes before setting thresholds: `quality-dev/agents/ci-flake-history-scanner.md`
 - Tool-level parallelism/sharding switches: `quality-dev/tools/playwright.md`, `quality-dev/tools/jest-vitest.md`

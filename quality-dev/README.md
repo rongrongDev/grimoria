@@ -1,8 +1,8 @@
 # quality-dev — A Principal SDET's Exit Brief
 
-**What this is:** 20+ years of test-strategy and automation judgment, encoded for humans (junior → staff QA/SDET) and AI models (Haiku → Opus) to use without the author in the room. Every doc stands alone; every skill and subagent is invokable; every strong claim is backed by a failure that actually happened, not vibes.
+**What this is:** 20+ years of test-strategy and automation judgment, encoded for humans (junior → staff QA/SDET) and AI models (Haiku → Opus) to use without the author in the room. Every doc stands alone; every skill and subagent is invokable once installed (see the install note below); every strong claim is backed by a failure that actually happened, not vibes.
 
-**Last full revision:** 2026-07-06 · verified against Playwright 1.5x, Vitest 3.x, Stryker 8.x, Pact 12+, k6 1.x (full table in `CHANGELOG.md`).
+**Last full revision:** 2026-07-13 · verified against Playwright 1.61, Vitest 4.1, StrykerJS 9.6, pact-js 16.x, k6 2.1 (full table in `CHANGELOG.md`).
 
 **The one-sentence philosophy:** a test earns its place by its ability to fail for exactly the reason it claims to test — coverage measures execution, flakiness measures honesty, and mutation testing measures whether anyone would notice.
 
@@ -33,16 +33,16 @@
 
 | Tool | Covers | Doc |
 |---|---|---|
-| Playwright 1.4x–1.5x (+ Cypress notes) | Browser E2E that stays green | `tools/playwright.md` |
-| Vitest 3.x / Jest 29–30 | Unit & integration mechanics, mocking discipline, fake timers | `tools/jest-vitest.md` |
-| StrykerJS 8.x | Mutation testing ops: config, two-track gating, triage | `tools/stryker.md` |
+| Playwright 1.4x–1.61 (+ Cypress 15 notes) | Browser E2E that stays green | `tools/playwright.md` |
+| Vitest 3.x–4.x / Jest 29–30 | Unit & integration mechanics, mocking discipline, fake timers | `tools/jest-vitest.md` |
+| StrykerJS 8.x–9.x | Mutation testing ops: config, two-track gating, triage | `tools/stryker.md` |
 | supertest 7 / Postman / Bruno | In-process API tests, schema validation, the authz matrix | `tools/api-testing.md` |
-| Pact 12+ / Broker | Consumer-driven contracts, provider states, can-i-deploy | `tools/pact.md` |
-| k6 1.x (+ JMeter notes) | Executors, open-model profiles, thresholds | `tools/k6.md` |
+| pact-js 12–16 / Broker | Consumer-driven contracts, provider states, can-i-deploy | `tools/pact.md` |
+| k6 1.x–2.x (+ JMeter notes) | Executors, open-model profiles, thresholds | `tools/k6.md` |
 
-**Extended tier** (production patterns + pitfalls only): Appium 2.x — `tools/appium.md` · Selenium 4.2x — `tools/selenium.md` · axe-core 4.10 — `tools/axe-core.md` · Percy/Chromatic — `tools/visual-regression.md`
+**Extended tier** (production patterns + pitfalls only): Appium 2.x–3.x — `tools/appium.md` · Selenium 4.2x–4.4x — `tools/selenium.md` · axe-core 4.10–4.12 — `tools/axe-core.md` · Percy/Chromatic — `tools/visual-regression.md`
 
-## Skills & subagents (in `.claude/`)
+## Skills & subagents (in `quality-dev/skills/` and `quality-dev/agents/`)
 
 | Callable | Kind | One-line trigger |
 |---|---|---|
@@ -53,6 +53,8 @@
 | `mutation-gap-analyzer` | Subagent (isolated) | Runs Stryker on a module → classified, ranked verification gaps |
 
 Each carries explicit do-NOT-use guidance in its description — respect it; the boundaries encode where each one fails.
+
+**To install:** these live in the KB so they version with the docs; they become invokable only once copied or symlinked into a consuming project's (or user's) `.claude/skills/` and `.claude/agents/` directories.
 
 ## How to read this KB
 

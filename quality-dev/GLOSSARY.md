@@ -1,6 +1,6 @@
 # GLOSSARY.md — Terms of art used across this KB
 
-**Last verified:** 2026-07-06. Single source of truth for terminology. If a doc in this KB uses a term differently, the doc is wrong — fix the doc.
+**Last verified:** 2026-07-13. Single source of truth for terminology. If a doc in this KB uses a term differently, the doc is wrong — fix the doc.
 
 **Arrange-Act-Assert (AAA)** — The three-phase shape of a well-formed test: set up state, perform the one behavior under test, verify observable outcomes. Tests with multiple act/assert cycles are usually several tests welded together and fail with ambiguous diagnostics.
 

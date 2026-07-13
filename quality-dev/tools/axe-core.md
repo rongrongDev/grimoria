@@ -1,6 +1,6 @@
 # axe-core — automated accessibility scanning production patterns & pitfalls (extended tier)
 
-**Applies to:** axe-core 4.10, `@axe-core/playwright` · **Last verified:** 2026-07-06
+**Applies to:** axe-core 4.10–4.12, `@axe-core/playwright` · **Last verified:** 2026-07-13 (against axe-core 4.12.1 — new minor versions add rules, which is exactly why the version-pinning pattern below exists; re-baseline deliberately when bumping)
 **Tier note:** extended — production patterns + pitfalls. The boundary of what automation can and cannot catch (the 30–40% reality, the keyboard pass, screen-reader cadence) is the principle doc: `quality-dev/principles/accessibility-testing.md` — read it before wiring anything, or you'll ship a green dashboard and an unusable product.
 
 ## Production patterns

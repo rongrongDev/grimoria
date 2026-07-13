@@ -1,6 +1,6 @@
 # Playwright — production patterns for E2E that stays green
 
-**Applies to:** `@playwright/test` 1.4x–1.5x · **Last verified:** 2026-07-06 · Cypress 13–14 notes at the end.
+**Applies to:** `@playwright/test` 1.4x–1.61 · **Last verified:** 2026-07-13 (against 1.61, released 2026-06) · Cypress 15 notes at the end.
 **Standalone:** yes. Playwright is the 2026 default for browser E2E: real multi-browser engines, first-class parallelism, auto-waiting assertions, trace-based debugging.
 **Related principles:** which journeys deserve E2E at all — `quality-dev/principles/test-strategy.md`; why waiting on time is banned — `quality-dev/principles/concurrency-and-async-testing.md`; flake triage — `quality-dev/principles/flakiness.md`.
 
@@ -50,6 +50,13 @@ Start the `waitForResponse` *before* the click (as above) or you race the respon
 - **Traces are the debugging currency.** `trace: 'on-first-retry'` + `playwright show-trace` gives you DOM snapshots, network, console at every step — triage from the trace, not from re-running. A team that triages by re-running is farming coordination out to luck.
 - New tests pass `--repeat-each=20 --workers=4` before earning merge-blocking status (admission rule, `quality-dev/principles/ci-cd-integration.md`).
 
+## What changed in 1.59–1.61 (verified 2026-07-13)
+
+- **Test Agents (1.59, the "agentic" release):** first-party planner/generator/**healer** agents plus Playwright MCP. The healer auto-repairs failing tests — treat its diffs exactly like any agent-written test change: they pass the reviewer gate and `--repeat-each` admission before merge, and a flake must be classified (test race vs product race, `quality-dev/principles/flakiness.md` #1 vs #6) *before* any heal is accepted. The orchestration rules in `quality-dev/orchestration/README.md` apply to first-party agents too.
+- **Video mode `retain-on-failure-and-retries` (1.61):** keeps footage only for failures and retried runs — pairs well with the `trace: 'on-first-retry'` policy above.
+- **Virtual WebAuthn authenticator (`browserContext.credentials`, 1.61):** passkey/passwordless flows now testable in CI without hardware keys — removes the last common excuse for UI-login-per-test on passkey apps.
+- **`page.localStorage` / `page.sessionStorage` (1.61):** first-class storage read/write instead of `evaluate()` round-trips.
+
 ## Common pitfalls (each one is a war story compressed)
 
 | Pitfall | Consequence | Instead |
@@ -74,6 +81,6 @@ Start the `waitForResponse` *before* the click (as above) or you race the respon
 | Selector churn on refactor | PRs touching many spec files for one UI change | Role/label locators; page-object or locator-map layer for shared surfaces | Review rule: CSS selectors require justification |
 | Green E2E, broken prod | Escaped defects in journeys "covered" by mocked-backend tests | Un-mock own backend; add real smoke on deploy | Route-mock allowlist reviewed; E2E defined as "real own-stack" in strategy doc |
 
-## If you're on Cypress (13–14) instead
+## If you're on Cypress (15) instead
 
-Same principles, different sharp edges: Cypress retries built-in assertions similarly (`should('have.text', …)`) — same check-once trap exists via `.then()` reads; no native parallel workers without Dashboard/3rd-party orchestration (sharding economics differ); single-tab architecture makes multi-tab/iframe journeys harder — if those journeys matter, that alone justifies Playwright. Do not migrate a working Cypress suite for fashion; migrate when you hit parallelism cost, multi-tab walls, or webkit coverage needs.
+Same principles, different sharp edges: Cypress retries built-in assertions similarly (`should('have.text', …)`) — same check-once trap exists via `.then()` reads; no native parallel workers without Dashboard/3rd-party orchestration (sharding economics differ); single-tab architecture makes multi-tab/iframe journeys harder — if those journeys matter, that alone justifies Playwright. Cypress 15 (2026-05) is mostly platform housekeeping — Node 18/23 support dropped, TypeScript 4 dropped, Firefox is BiDi-only (CDP removed) — the judgment above is unchanged. Do not migrate a working Cypress suite for fashion; migrate when you hit parallelism cost, multi-tab walls, or webkit coverage needs.

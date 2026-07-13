@@ -1,6 +1,6 @@
 # Security Testing — the quality engineer's lane, and its boundaries
 
-**Applies to:** concept doc; pipeline examples assume GitHub-Actions-class CI, Semgrep/CodeQL-class SAST, ZAP-class DAST, Dependabot/Snyk-class SCA · **Last verified:** 2026-07-06
+**Applies to:** concept doc; pipeline examples assume GitHub-Actions-class CI, Semgrep/CodeQL-class SAST, ZAP-class DAST, Dependabot/Snyk-class SCA · **Last verified:** 2026-07-13
 **Standalone:** yes. Definitions: *SAST* = static analysis of source for vulnerability patterns; *DAST* = probing a running app from outside; *SCA* = dependency/supply-chain scanning; *IDOR* = insecure direct object reference (user A reads object B by guessing its ID).
 **Related:** `quality-dev/principles/ci-cd-integration.md` (gate placement), `quality-dev/tools/api-testing.md` (where authz tests live), `quality-dev/principles/test-strategy.md` (risk ranking).
 

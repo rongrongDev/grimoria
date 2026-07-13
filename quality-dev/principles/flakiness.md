@@ -1,8 +1,8 @@
 # Flakiness — root causes, quarantine judgment, and proving a fix
 
-**Applies to:** tool-agnostic (examples reference Playwright 1.5x, Vitest 3.x) · **Last verified:** 2026-07-06
+**Applies to:** tool-agnostic (examples reference Playwright 1.5x+, Vitest 3.x–4.x) · **Last verified:** 2026-07-13
 **Standalone:** yes. Definition used throughout: a test is *flaky* when it both passes and fails against identical code. Corollary that drives everything here: **every flaky test is either a broken test or a broken product.** "It's just flaky" is a refusal to diagnose, not a diagnosis.
-**Related:** `.claude/skills/flaky-test-diagnoser/SKILL.md` (single-test diagnosis), `.claude/agents/ci-flake-history-scanner.md` (suite-wide ranking), `quality-dev/principles/concurrency-and-async-testing.md` (deterministic waiting in depth), `quality-dev/principles/ci-cd-integration.md` (gating policy).
+**Related:** `quality-dev/skills/flaky-test-diagnoser/SKILL.md` (single-test diagnosis), `quality-dev/agents/ci-flake-history-scanner.md` (suite-wide ranking), `quality-dev/principles/concurrency-and-async-testing.md` (deterministic waiting in depth), `quality-dev/principles/ci-cd-integration.md` (gating policy).
 
 The story I want you to carry: I once spent a full week on a checkout test that failed roughly 1 run in 40. Everyone wanted it quarantined; two engineers had already "fixed" it twice by extending timeouts. The real cause was a product race — the order-confirmation email job could read the order row *before* the payment-status update committed, because the two writes happened in separate transactions with no ordering guarantee. The test wasn't flaky. The product was. Customers had been intermittently receiving "payment failed" emails for paid orders for months; support had a macro for it. **The flaky test was the only part of the system telling the truth.** Never let the quarantine reflex delete your best production-bug detector.
 
@@ -66,4 +66,4 @@ Quarantine (remove from merge-blocking, keep running & tracked) is a tourniquet,
 
 ## Suite-wide flake work
 
-Ranking *which* tests to attack first needs CI history mining — hundreds of runs, pass/fail per test per run, retry outcomes. That is bulk work that would drown a working context: dispatch the `ci-flake-history-scanner` subagent (`.claude/agents/ci-flake-history-scanner.md`) and act on its ranked report. For one known-flaky test, use the `flaky-test-diagnoser` skill instead — it walks exactly the taxonomy and proof-of-fix protocol above.
+Ranking *which* tests to attack first needs CI history mining — hundreds of runs, pass/fail per test per run, retry outcomes. That is bulk work that would drown a working context: dispatch the `ci-flake-history-scanner` subagent (`quality-dev/agents/ci-flake-history-scanner.md`) and act on its ranked report. For one known-flaky test, use the `flaky-test-diagnoser` skill instead — it walks exactly the taxonomy and proof-of-fix protocol above.

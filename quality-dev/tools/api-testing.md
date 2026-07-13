@@ -1,6 +1,6 @@
 # API Testing — in-process HTTP tests, schema validation, and the authz matrix
 
-**Applies to:** supertest 7.x (in-process), Postman/Newman & Bruno (collection runners), zod 3.x / OpenAPI 3.1 validation, Testcontainers · **Last verified:** 2026-07-06
+**Applies to:** supertest 7.x (in-process), Postman/Newman & Bruno (collection runners), zod 4.x / OpenAPI 3.1 validation, Testcontainers · **Last verified:** 2026-07-13 (supertest 7.2 still current; zod 4 is the stable line — schema-sharing pattern below is API-version-agnostic)
 **Standalone:** yes. Scope: testing *your own* HTTP API at the integration layer — real routing, middleware, serialization, and database; external third parties faked at the network boundary. Cross-*service* agreement is contract testing and lives in `quality-dev/tools/pact.md`.
 **Related principles:** layer choice — `quality-dev/principles/test-strategy.md`; hermetic data — `quality-dev/principles/contract-and-integration-testing.md`; authz ownership — `quality-dev/principles/security-testing.md`.
 

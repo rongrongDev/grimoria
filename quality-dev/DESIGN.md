@@ -1,6 +1,6 @@
 # DESIGN.md — Why this KB is shaped the way it is
 
-**Last verified:** 2026-07-06 · Applies to the whole `quality-dev/` tree and its `.claude/` counterparts.
+**Last verified:** 2026-07-13 · Applies to the whole `quality-dev/` tree, including its `skills/` and `agents/` subdirectories.
 
 This is the design note required before any content: what goes where, and why. If you are extending this KB, read this first so you put new material in the right primitive.
 
@@ -11,9 +11,9 @@ This is the design note required before any content: what goes where, and why. I
 | Question to ask about new content | If yes → |
 |---|---|
 | Is it judgment a reader must *internalize* to make their own calls — tradeoffs, decision trees, war stories, failure taxonomies? | `quality-dev/principles/` or `quality-dev/tools/` (plain markdown) |
-| Is it a *repeatable procedure* an agent or human executes on demand, with defined inputs and a defined deliverable? | `.claude/skills/<name>/SKILL.md` |
-| Does the procedure produce *large intermediate output* (thousands of CI log lines, full mutation reports) that would poison the calling context, while its useful result is a short ranked summary? | `.claude/agents/<name>.md` (subagent) |
-| Is it a trivial one-liner with no auto-invoke need? | `.claude/commands/` — we deliberately have none; everything here earned Skill status or stayed a doc |
+| Is it a *repeatable procedure* an agent or human executes on demand, with defined inputs and a defined deliverable? | `quality-dev/skills/<name>/SKILL.md` |
+| Does the procedure produce *large intermediate output* (thousands of CI log lines, full mutation reports) that would poison the calling context, while its useful result is a short ranked summary? | `quality-dev/agents/<name>.md` (subagent) |
+| Is it a trivial one-liner with no auto-invoke need? | a slash command — we deliberately have none; everything here earned Skill status or stayed a doc |
 
 The subagent test is the one people get wrong. A subagent is not "a big skill." It is justified only when the *ratio of raw material read to conclusion returned* is extreme. Scanning 500 CI runs to rank the 10 flakiest tests reads megabytes and returns a page — subagent. Diagnosing one flaky test reads one test file and one stack trace — skill. Getting this wrong wastes money and, worse, strands the diagnosis away from the context that needed it.
 
@@ -49,18 +49,18 @@ quality-dev/
 ├── playbooks/                 ← end-to-end procedures a human or agent follows start-to-finish
 │   ├── build-a-test-strategy-from-scratch.md
 │   └── analyze-an-existing-test-suite.md
-└── orchestration/
-    └── README.md              ← multi-agent patterns for quality work
-
-.claude/
-├── skills/
+├── orchestration/
+│   └── README.md              ← multi-agent patterns for quality work
+├── skills/                    ← agent-invokable procedures (install: copy/symlink into a consumer's .claude/skills/)
 │   ├── test-strategy-planner/SKILL.md
 │   ├── flaky-test-diagnoser/SKILL.md
 │   └── test-suite-auditor/SKILL.md
-└── agents/
+└── agents/                    ← isolated subagents (install: copy/symlink into a consumer's .claude/agents/)
     ├── ci-flake-history-scanner.md
     └── mutation-gap-analyzer.md
 ```
+
+**Installation note.** Skills and subagents *live* in this KB (`quality-dev/skills/`, `quality-dev/agents/`) so they version with the docs they reference. They are not auto-invokable from here: a consuming project or user must copy or symlink them into `.claude/skills/` and `.claude/agents/` (project- or user-level) for the harness to discover them. All cross-references in this KB use the source-of-truth `quality-dev/...` paths.
 
 ## Specific placement decisions, with reasoning
 
