@@ -23,7 +23,7 @@ Everything in `eval-design.md` about criteria applies double here, because human
 
 - **Binary or short-categorical items, not 1–10 scales.** Humans can't hold a stable 10-point scale across a session; two raters *each internally consistent* will still anchor differently. Every point of scale resolution you add costs you agreement.
 - **One decision per item.** "Is it accurate and complete?" is two questions; raters resolve conflicts between them differently, and you can't tell which one failed.
-- **Define the boundary, not the center.** Raters don't disagree on clearly-good or clearly-bad; they disagge at boundaries. The rubric earns its keep by legislating the boundary: "counts as an action item if the customer explicitly requests it, even conditionally ('if X, please Y')."
+- **Define the boundary, not the center.** Raters don't disagree on clearly-good or clearly-bad; they disagree at boundaries. The rubric earns its keep by legislating the boundary: "counts as an action item if the customer explicitly requests it, even conditionally ('if X, please Y')."
 - **Include a decision rule for pathological cases:** refusals, empty outputs, off-topic-but-charming answers. Undefined cases become per-rater house rules — invisible until they diverge.
 - **Pilot on 30 items with 2 raters before scaling.** Every rubric survives contact with real outputs worse than its author expects. Budget two pilot-revise cycles.
 
@@ -37,7 +37,7 @@ Everything in `eval-design.md` about criteria applies double here, because human
 
 - **Detection:** Always double-label a subset (≥ 20% or ≥ 50 items). Compute Cohen's kappa (2 raters) / Krippendorff's alpha (≥ 3, or missing labels) *per rubric item*, not just overall — an overall 0.75 can hide one item at 0.3. Never report raw percent agreement alone; 85% raw agreement on a 90%-pass-rate task is *worse than chance-corrected mediocre* (see GLOSSARY: inter-rater reliability).
 - **Fix:** Adjudicate disagreements in a session with both raters; classify each as (a) rubric gap → rewrite the boundary rule, (b) rater error → retrain, (c) genuine irreducible subjectivity → either drop the item type from the eval or explicitly model it as distributional (report agreement rate as the signal). Re-pilot after rewriting.
-- **Prevention:** IRR gate before any batch counts: kappa ≥ 0.7 on the pilot, or the rubric goes back. Rubric changes re-trigger the pilot. Run `.claude/skills/eval-rubric-reviewer/` on every new rubric before it ever reaches raters — cheaper than discovering ambiguity via kappa.
+- **Prevention:** IRR gate before any batch counts: kappa ≥ 0.7 on the pilot, or the rubric goes back. Rubric changes re-trigger the pilot. Run `../skills/eval-rubric-reviewer/` on every new rubric before it ever reaches raters — cheaper than discovering ambiguity via kappa.
 
 ### 2. Annotator fatigue and drift
 
@@ -86,4 +86,4 @@ Majority vote is the default and it's often wrong:
 - What the human labels feed: `llm-as-judge.md` (calibration)
 - Whether your IRR/sample sizes support the claims you make: `statistical-rigor.md`
 - RLHF/preference-specific human-data issues: `../topics/rlhf-preference-data-evals.md`
-- Skill: `.claude/skills/eval-rubric-reviewer/SKILL.md`
+- Skill: `../skills/eval-rubric-reviewer/SKILL.md`

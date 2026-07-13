@@ -1,6 +1,6 @@
 # Adversarial & Red-Team Evaluation: Methodology and Metrics
 
-**Version:** 1.0.0 · **Date:** 2026-07-06 · **Tier:** extended (production patterns + common pitfalls) · **Applies to:** safety/robustness evals for deployed LLM systems
+**Version:** 1.0.1 · **Date:** 2026-07-13 · **Tier:** extended (production patterns + common pitfalls) · **Applies to:** safety/robustness evals for deployed LLM systems
 **Scope note:** This doc covers *methodology and measurement* — how to structure adversarial eval sets and interpret robustness metrics. It deliberately contains no exploit payloads, no jailbreak strings, no bypass recipes. If you need actual attack content, that's a job for your security team's authorized tooling under an engagement, not an eval KB.
 
 ---
@@ -9,6 +9,7 @@
 
 - **Security testing** asks "can a motivated attacker break this system?" — exhaustive, exploit-driven, point-in-time, done by specialists under authorization.
 - **Adversarial evaluation** asks "how robust is the model's behavior against *categories* of hostile or degenerate input, and is that robustness regressing?" — sampled, category-driven, continuous, run in CI like any other suite.
+- The specialist side has its own KBs in this repo: `../../ai-model-red-teamer/` covers the attacker's discipline end-to-end — its `../../ai-model-red-teamer/principles/robustness-evaluation.md` and `../../ai-model-red-teamer/principles/automated-red-teaming.md` are the natural next reads when this doc's category-regression framing isn't enough; `../../ai-agent-red-teamer/` covers agentic attack surfaces (indirect injection, excessive agency, trajectory-level analysis) for the systems `agentic-task-evals.md` scores.
 - They complement: red-team findings seed adversarial eval categories (the incident→golden-set pipeline of `../principles/production-offline-gap.md`, applied to attacks); the adversarial suite then guards against *regression* on known categories while security testing hunts *novel* ones. An adversarial eval suite is not a substitute for red-teaming, and passing it proves resistance to your categories, not safety in general — write that sentence into the suite README before someone quotes the number as a safety certificate.
 
 ## Production patterns
@@ -31,3 +32,4 @@
 
 ## Related
 `../principles/eval-design.md` (adversarial stratum sizing) · `../principles/contamination-and-leakage.md` (probe burn) · `agentic-task-evals.md` (indirect injection, trajectories) · `../guides/build-eval-suite-from-scratch.md` §step 4 (adversarial stratum construction)
+Adjacent KBs: `../../ai-model-red-teamer/principles/robustness-evaluation.md` + `../../ai-model-red-teamer/principles/automated-red-teaming.md` (the attacking discipline this doc measures against) · `../../ai-agent-red-teamer/principles/indirect-prompt-injection.md` (agentic injection surfaces) · `../../ai-model-red-teamer/topics/bias-fairness-red-teaming.md` (fairness/demographic-slice evaluation of the system under test — distinct from judge bias)

@@ -1,6 +1,6 @@
 # Guide: Build an Eval Suite From Scratch
 
-**Version:** 1.0.0 · **Date:** 2026-07-06 · **Applies to:** any LLM/agent feature; harness-agnostic (promptfoo, Braintrust, LangSmith, custom) with generic config sketches
+**Version:** 1.1.0 · **Date:** 2026-07-13 · **Applies to:** any LLM/agent feature; harness-agnostic (landscape map in Step 4, re-checked 2026-07-13) with generic config sketches
 **Audience:** an engineer or agent who has a system to evaluate and no eval. Follow the steps in order; each step names its exit criterion. Deep dives are linked, but this guide is complete enough to execute alone. Expect the first pass to take days, not hours — and to be 10× cheaper than discovering in production that you had no eval.
 
 ---
@@ -22,7 +22,7 @@ The *decision* determines everything downstream: a per-PR gate needs speed and d
 3. Write the pathological-case policy: what does each criterion do with a refusal, an empty output, an off-topic answer? Undefined cases become scorer house rules later.
 4. Attach a one-line **gaming note** to each metric: the cheapest way to raise it without getting better. If the note is easy to write and scary, redesign the metric now.
 
-**Exit criterion:** rubric drafted, every item binary or short-categorical, pathological policy written. Run `.claude/skills/eval-rubric-reviewer/` on it before proceeding — it catches the ambiguities you can no longer see because you wrote them.
+**Exit criterion:** rubric drafted, every item binary or short-categorical, pathological policy written. Run `../skills/eval-rubric-reviewer/` on it before proceeding — it catches the ambiguities you can no longer see because you wrote them.
 
 ## Step 2 — Build the golden set (1–3 days)
 
@@ -30,7 +30,7 @@ The *decision* determines everything downstream: a per-PR gate needs speed and d
 2. **Stratify deliberately:** ~60–70% representative (traffic-weighted), ~20–30% known edge cases (build the coverage matrix: length × language × format × intent; fill cells that exist in production), ~10% adversarial/malformed (category taxonomy from `../topics/adversarial-evaluation.md` — categories and severity, no payload imports). Tag every item with its stratum.
 3. **Ground truth with provenance:** every expected output/label records who decided it and how (`../principles/eval-design.md` §hygiene rule 4). Correctness-bearing labels need qualified raters (`../principles/human-evaluation.md` §3).
 4. **Size it against your MDE:** decide the smallest delta the gate must detect, apply n ≈ 16·p(1−p)/Δ² (`../principles/statistical-rigor.md` §sample size). Typical honest answer: ~400 items detects ~5-point moves around 85%; write the suite's actual MDE in its README rather than promising sensitivity you didn't buy.
-5. **Split tiers immediately, before any iteration happens:** dev set (iterate freely) / held-out (~15–20%, scored per-release only) — day-one prevention of iteration leakage (`../principles/contamination-and-leakage.md` §3). If the inputs came from anywhere public or shared-provenance, run `contamination-scanner` (`.claude/agents/contamination-scanner.md`) before trusting the set.
+5. **Split tiers immediately, before any iteration happens:** dev set (iterate freely) / held-out (~15–20%, scored per-release only) — day-one prevention of iteration leakage (`../principles/contamination-and-leakage.md` §3). If the inputs came from anywhere public or shared-provenance, run `contamination-scanner` (`../agents/contamination-scanner.md`) before trusting the set.
 6. **Version it:** items in git/content-addressed store, immutable per version, provenance metadata required per item.
 
 **Exit criterion:** versioned set with strata tags, provenance, dev/held-out split, documented MDE. *(Agentic systems: items are (initial state + goal + environment + executable verification) — see `../topics/agentic-task-evals.md` before this step.)*
@@ -46,7 +46,7 @@ Decision tree:
 For an LLM judge:
 1. Write the judge prompt: full context, binary checklist, pathological-case rules, 2–3 anchored examples per tricky criterion, reasoning-then-verdict JSON, temperature 0, pinned model (`../principles/llm-as-judge.md` §prompt design).
 2. **Calibrate:** 100–200 stratified items, human-labeled via a real pipeline (qualification, double-labeling, IRR ≥ 0.7 kappa on the pilot — `../principles/human-evaluation.md`); require judge–human kappa ≥ 0.7 per item to gate; read every disagreement and fix rubric → prompt → model → scope, in that order.
-3. Run the bias probes once before trusting it: A/A position test (if pairwise), length-vs-score correlation, compression probe — or just run `.claude/skills/judge-bias-auditor/`.
+3. Run the bias probes once before trusting it: A/A position test (if pairwise), length-vs-score correlation, compression probe — or just run `../skills/judge-bias-auditor/`.
 4. Hash judge model+prompt+params into every score record.
 
 **Exit criterion:** scoring method with recorded calibration evidence (kappa, disagreement notes) and a judge-config hash. An uncalibrated judge may be used for *triage only*, labeled as such.
@@ -59,6 +59,32 @@ Requirements checklist, framework-agnostic:
 - [ ] Hermetic per-item execution; then run the **shuffle test** (two orderings, scores must match within noise) and an **A/A run** (same config twice) to measure the flake band (`../principles/cost-and-scalability.md` §3, `../principles/regression-testing-and-edd.md` §1).
 - [ ] Caching: generations keyed on (input, system hash); verdicts on (input, output, judge hash).
 - [ ] Output: per-item results with transcript refs + per-stratum scores with **Wilson/bootstrap CIs** — never a bare topline (`../principles/statistical-rigor.md`).
+
+**Choosing a harness (landscape as of 2026-07 — re-check per the CHANGELOG staleness rule).** Don't build from scratch until you've confirmed no existing harness covers the checklist; do check that your candidate captures the *full run record* above, because most tools version prompts but not eval-set/judge-config hashes. Rough map: **Inspect AI** (UK AI Security Institute, OSS, Python-first — provider-neutral, strong for capability/safety suites and agentic tasks); **DeepEval** (OSS, pytest-style assertions — easiest CI wiring); **promptfoo** (OSS, YAML/CLI, prompt-matrix and red-team runs — owned by OpenAI since 2026-03, still open source; weigh the provider tie for cross-vendor comparisons); **Ragas** (RAG-specific metrics — see `../topics/rag-evaluation.md`); **Braintrust / LangSmith** (hosted platforms — scorers + run history + UI, vendor lock-in tradeoff); **Arize Phoenix / Langfuse / W&B Weave** (observability-first — production tracing with eval hooks; pair one with a dev-time harness rather than expecting either to do both jobs). Two-tool setups (dev-time harness + production observability) are the common mature pattern, not a smell.
+
+A minimal worked config, to make the step concrete (Inspect AI chosen for provider neutrality; every harness above has an equivalent ~20-line starting point):
+
+```python
+# eval_task.py — pip install inspect-ai; run:
+#   inspect eval eval_task.py --model anthropic/claude-fable-5 --temperature 0 --log-dir runs/
+from inspect_ai import Task, task
+from inspect_ai.dataset import json_dataset
+from inspect_ai.scorer import model_graded_qa
+from inspect_ai.solver import generate
+
+@task
+def support_summaries():
+    return Task(
+        dataset=json_dataset("golden-set-v3.jsonl"),  # one {"input":…, "target":…} per line; version the file
+        solver=generate(),                            # replace with your system-under-test wrapper
+        scorer=model_graded_qa(                       # judge per step 3 — calibrated, pinned, hashed
+            model="anthropic/claude-sonnet-4-6",
+            template=JUDGE_PROMPT,                    # the calibrated prompt from step 3
+        ),
+    )
+```
+
+Inspect logs model, params, dataset, and per-item transcripts into the run log; you still owe the checklist deltas — the eval-set version and judge-config hash in the run record, the A/A and shuffle runs, and CIs on the per-stratum report.
 
 **Exit criterion:** two consecutive A/A runs with recorded band; shuffle test flat.
 

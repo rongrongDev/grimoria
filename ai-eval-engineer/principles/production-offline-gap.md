@@ -1,6 +1,6 @@
 # The Production–Offline Gap: When the Eval Improves and the Product Doesn't
 
-**Version:** 1.0.0 · **Date:** 2026-07-06 · **Applies to:** any deployed LLM/agent system with offline evals; privacy guidance assumes GDPR/CCPA-era norms — involve your privacy/legal function before sampling user data
+**Version:** 1.1.0 · **Date:** 2026-07-13 · **Applies to:** any deployed LLM/agent system with offline evals; privacy guidance assumes GDPR/CCPA-era norms — involve your privacy/legal function before sampling user data
 **Audience:** standalone. The theme: an offline eval is a *model of production*, and models of production go stale the way all models do — silently, while still emitting numbers.
 
 ---
@@ -59,6 +59,21 @@ The highest-ROI eval habit (`eval-design.md`) — every real failure becomes a r
 
 ---
 
+## The online half: making "offline green + A/B" executable
+
+§5 establishes the launch bar; this section is the minimum needed to run the A/B side without fooling yourself. It is not an experimentation-platform manual — if your org has one, use it and bring only the LLM-specific parts below.
+
+- **One primary metric, pre-registered; everything else is a guardrail.** The primary carries the improvement claim (task completion, resolution rate, whatever §5 named as the offline metric's online referent). Guardrails are the must-not-regress set — latency percentiles, escalation rate, safety-flag rate, refusal rate, session abandonment — each with a stop threshold written down *before* launch. LLM changes are high-dimensional: a prompt change that wins the primary while doubling refusals on one intent is the modal outcome, and without pre-registered guardrails it ships.
+- **Decide your peeking policy up front.** Teams watch LLM launches daily and stop when significance appears — repeated looks at a fixed-horizon test inflate false positives badly (the multiple-comparisons problem of `statistical-rigor.md`, live edition). Either commit to a fixed horizon and don't act early, or use a sequential method (always-valid inference / mSPRT-style, standard in 2026 experimentation platforms) that prices continuous monitoring in. "We stopped when it hit p < 0.05 on day 3" is the online twin of cherry-picking the best eval run.
+- **Size it with the same MDE honesty as offline.** Compute the detectable effect for your traffic and horizon before launching (`statistical-rigor.md` §MDE — same formula, n = users or sessions per arm). Most product surfaces cannot detect a 1–2-point quality delta in a two-week A/B; that's *why* the offline suite must be sensitive. The A/B's realistic job: confirm no guardrail harm, detect large effects, and validate the offline delta's direction — not re-measure the delta precisely.
+- **Interleaving for ranking-shaped surfaces.** Where the LLM change affects an ordered list (retrieval, search, suggestions), interleaved comparison converges 10–100× faster than per-user A/B on preference questions — worth knowing exists before you burn a quarter's traffic on an under-powered split.
+- **Expect novelty and learning effects.** Users poke at visibly changed behavior for days (novelty inflates engagement metrics) and take weeks to trust changed behavior (adaptation suppresses it). Read week-2 numbers, not day-2, for anything user-visible.
+- **Close the loop into L3:** every A/B result is a data point for the suite's predictive power — record (offline delta, online outcome) pairs per launch and review the correlation quarterly (§1 detection). An offline suite that keeps predicting online outcomes has earned larger launch authority; one that doesn't gets demoted to regression tripwire, per the §5 prevention checklist.
+
+**Failure mode here — the A/B that can't say no:** launched with no pre-registered stop rule, peeked daily, primary "significant" on day 4, shipped; guardrail regression found in month 2. Detection: audit your last five launches for a written stop rule that predates the launch. Fix/prevention: the launch checklist requires primary + guardrails + horizon/peeking policy in writing before the flag flips; an experiment without them is a rollout, not a test — label it honestly.
+
+---
+
 ## The maturity ladder (where is your team?)
 
 1. **L0:** offline suite only, hand-built, never refreshed. Gap unknown and unmeasured.
@@ -76,4 +91,5 @@ Most teams believe they're at L2 and are at L1. The tell is whether "when did th
 - Contamination via the production→training→eval loop: `contamination-and-leakage.md`
 - Set versioning and discontinuity handling on refresh: `regression-testing-and-edd.md`
 - Trajectory-level metrics for multi-turn production traffic: `../topics/agentic-task-evals.md`
+- RAG-specific system mismatch (corpus/index drift, attribution): `../topics/rag-evaluation.md`
 - Audit lens on someone else's gap: `../guides/audit-existing-eval-setup.md`

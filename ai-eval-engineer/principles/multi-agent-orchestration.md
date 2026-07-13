@@ -96,5 +96,5 @@ Human + orchestrator (judgment, decisions, statistics)
 - The statistics agents must carry with them: `statistical-rigor.md`
 - Iteration-leakage budgets for agent loops: `contamination-and-leakage.md`
 - Hermetic parallel execution: `cost-and-scalability.md`
-- The subagents referenced here: `.claude/agents/contamination-scanner.md`, `.claude/agents/eval-regression-tracer.md`
-- The skills referenced here: `.claude/skills/eval-rubric-reviewer/`, `.claude/skills/judge-bias-auditor/`
+- The subagents referenced here: `../agents/contamination-scanner.md`, `../agents/eval-regression-tracer.md`
+- The skills referenced here: `../skills/eval-rubric-reviewer/`, `../skills/judge-bias-auditor/`

@@ -1,6 +1,6 @@
 # Statistical Rigor for Eval Scores: Is That Delta Real?
 
-**Version:** 1.0.0 · **Date:** 2026-07-06 · **Applies to:** any eval producing scores/pass-rates; math is timeless, tooling examples generic (Python/scipy, or the built-in CI support in Braintrust/promptfoo-style harnesses)
+**Version:** 1.0.1 · **Date:** 2026-07-13 · **Applies to:** any eval producing scores/pass-rates; math is timeless, tooling examples generic (Python/scipy, or the built-in CI support in harnesses like Braintrust, Inspect AI, DeepEval, or promptfoo [OpenAI-owned since 2026-03] — exemplar list re-checked 2026-07-13)
 **Audience:** standalone. Written for engineers who don't do statistics daily — recipes first, theory only where skipping it causes wrong decisions.
 
 ---
@@ -82,7 +82,7 @@ The compound failure: no CI + small n + many comparisons + human narrative-cravi
 
 - **Detection:** before investigating any delta, two questions in order: (1) is it outside the CI on the difference? (2) does it survive a **rerun on a fresh or held-out sample**? A real effect replicates; noise doesn't. This two-step filter kills most ghost-chases for the price of one extra eval run.
 - **Fix:** for a suspected-real delta, triangulate before acting: read the discordant items (McNemar's set — the actual flipped cases), check whether the change plausibly touches that category, replicate. *Then* decide.
-- **Prevention:** encode the two-step filter in the regression-triage runbook (`eval-regression-tracer` subagent does exactly this — significance check before clustering, `.claude/agents/eval-regression-tracer.md`). Track your suite's historical run-to-run variance (A/A runs); any delta within that band is auto-labeled "noise-consistent" by the harness before a human ever sees it.
+- **Prevention:** encode the two-step filter in the regression-triage runbook (`eval-regression-tracer` subagent does exactly this — significance check before clustering, `../agents/eval-regression-tracer.md`). Track your suite's historical run-to-run variance (A/A runs); any delta within that band is auto-labeled "noise-consistent" by the harness before a human ever sees it.
 
 ### 5. (Bonus, seen constantly) Simpson's paradox in blended scores
 
@@ -104,4 +104,4 @@ Every eval result that feeds a decision includes: metric definition + eval-set v
 - Where n comes from and what items to buy with it: `eval-design.md`, `cost-and-scalability.md`
 - Flake vs. noise vs. regression: `regression-testing-and-edd.md`
 - IRR statistics (kappa/alpha): `human-evaluation.md` + GLOSSARY
-- Subagent that applies this triage automatically: `.claude/agents/eval-regression-tracer.md`
+- Subagent that applies this triage automatically: `../agents/eval-regression-tracer.md`

@@ -29,7 +29,7 @@ If no claim can be stated even after the interview, record that as the headline 
 Read, in order: the rubric/criteria, 20 items *with* their expected outputs (random, not the first 20 — the first 20 are always the author's best work), the scorer/judge prompt, the last 3 run reports.
 
 Score against these checks (each maps to a deep-dive doc):
-- **Criteria ambiguity:** could two competent readers score differently? Grab the two worst criteria and predict-the-verdict on 5 items yourself; failure to predict = ambiguity (`../principles/eval-design.md` §1). Run `.claude/skills/eval-rubric-reviewer/` on the rubric — cheapest signal in the whole audit.
+- **Criteria ambiguity:** could two competent readers score differently? Grab the two worst criteria and predict-the-verdict on 5 items yourself; failure to predict = ambiguity (`../principles/eval-design.md` §1). Run `../skills/eval-rubric-reviewer/` on the rubric — cheapest signal in the whole audit.
 - **Proxy gap:** for each metric, write the gaming note (cheapest way to inflate it). Check whether observed system behavior shows signs of having found it (e.g., embedding-similarity metric + suspiciously reference-shaped outputs — `../principles/eval-design.md` §2).
 - **Ground-truth provenance:** who decided the expected outputs? Sample 10 for correctness yourself or with a domain expert; wrong labels found here are per-item invisible-forever penalties.
 - **Coverage vs. claim:** stratum tags present? Coverage matrix vs. the claimed population; if production traffic is accessible, spot-check the traffic-weight divergence (`../principles/production-offline-gap.md` §1 — the museum-suite and pet-scenario failures both announce themselves here).
@@ -50,7 +50,7 @@ Score against these checks (each maps to a deep-dive doc):
 - Public/pre-cutoff items? → cutoff arithmetic now; flag for completion probes.
 - Held-out tier exists? How many iteration runs against the dev set (harness logs)? Hundreds of runs + no held-out = assume iteration leakage; the dev trend is partly fiction (§3).
 - Item provenance vs. training-data sources (shared upstream docs — §2); production→training and production→eval pipelines partitioned by conversation ID?
-- **Deep tier:** spawn `contamination-scanner` (`.claude/agents/contamination-scanner.md`) for completion probes + near-dup sweeps; it returns a verdict artifact for the report.
+- **Deep tier:** spawn `contamination-scanner` (`../agents/contamination-scanner.md`) for completion probes + near-dup sweeps; it returns a verdict artifact for the report.
 
 ## Phase 3 — Statistical-rigor review (1 h desk + cheap experiments in Standard tier)
 

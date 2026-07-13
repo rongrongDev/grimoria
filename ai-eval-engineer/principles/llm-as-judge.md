@@ -1,7 +1,7 @@
 # LLM-as-Judge: Using a Model to Grade a Model Without Fooling Yourself
 
-**Version:** 1.0.0 · **Date:** 2026-07-06 · **Applies to:** any judge model (Claude 4.x/Fable 5, GPT-5.x, Gemini 3.x era); patterns are framework-agnostic (promptfoo `llm-rubric`, Braintrust scorers, LangSmith evaluators, custom)
-**Audience:** standalone. Companion skill: `.claude/skills/judge-bias-auditor/SKILL.md`.
+**Version:** 1.0.1 · **Date:** 2026-07-13 · **Applies to:** any judge model (Claude 4.x/Fable 5, GPT-5.x, Gemini 3.x era); patterns are framework-agnostic (promptfoo `llm-rubric` [promptfoo OpenAI-owned since 2026-03], DeepEval metrics, Braintrust scorers, LangSmith evaluators, custom — exemplar list re-checked 2026-07-13)
+**Audience:** standalone. Companion skill: `../skills/judge-bias-auditor/SKILL.md`.
 
 ---
 
@@ -17,7 +17,7 @@ The judge is also *part of the eval system under test*. When you change the judg
 
 ## Judge prompt design
 
-Rules that survived contact with production:
+A judge prompt is a production prompt and earns production prompt-craft — the general discipline (instruction clarity, few-shot anchor construction, structured-output reliability) lives in this repo's `../../prompt-engineer/` KB (start with `../../prompt-engineer/topics/clarity-and-specification.md`, `../../prompt-engineer/topics/few-shot-examples.md`, `../../prompt-engineer/topics/structured-output.md`). What follows is the judge-specific layer on top. Rules that survived contact with production:
 
 1. **Binary checklist items beat Likert scales.** "Rate helpfulness 1–10" produces scale drift, clustering at 7, and judge-model-version sensitivity. "Does the response include the refund amount? Y/N" is stable, auditable, and cheap to calibrate. Decompose holistic quality into 3–8 binary checks; aggregate in code, not in the judge's head.
 2. **The judge sees the criteria, not your intent.** Everything the judge needs must be in the prompt: the input, the criteria, what to do with edge cases ("if the response refuses, score item 3 as N/A, not fail"). Judges resolve ambiguity *consistently but arbitrarily* — the most dangerous failure shape, because it looks like a working eval.
@@ -94,4 +94,5 @@ Judge calls often dominate eval cost — sometimes 10× the system-under-test co
 - Rubric quality upstream of everything here: `eval-design.md`
 - Human labels for calibration: `human-evaluation.md`
 - Is that score delta real: `statistical-rigor.md`
-- Skill: `.claude/skills/judge-bias-auditor/SKILL.md` — runs the detection probes above as a structured audit
+- Prompt-craft fundamentals for the judge prompt itself: `../../prompt-engineer/` (adjacent KB)
+- Skill: `../skills/judge-bias-auditor/SKILL.md` — runs the detection probes above as a structured audit

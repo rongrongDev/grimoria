@@ -1,6 +1,6 @@
 # AI Evaluation Engineer — Knowledge Base
 
-**Version:** 1.0.0 · **Date:** 2026-07-06 · Final knowledge transfer from a principal AI evaluation engineer. Self-contained: every doc is standalone-readable by humans (junior → staff) and by smaller models given a single file.
+**Version:** 1.1.0 · **Date:** 2026-07-13 · Final knowledge transfer from a principal AI evaluation engineer, maintained post-transfer (see `CHANGELOG.md`). Self-contained: every doc is standalone-readable by humans (junior → staff) and by smaller models given a single file.
 
 **The KB's one-sentence thesis:** an eval is a proxy measured by an instrument, and both the proxy and the instrument fail *silently* — the score keeps printing — so detection is a first-class design requirement, not an afterthought.
 
@@ -12,11 +12,13 @@
 |---|---|
 | Build an eval suite for a new feature, end to end | `guides/build-eval-suite-from-scratch.md` |
 | Assess an eval suite I inherited / don't trust | `guides/audit-existing-eval-setup.md` |
-| Review a rubric before raters/judges see it | skill **`eval-rubric-reviewer`** (`../.claude/skills/eval-rubric-reviewer/`) |
-| Check my LLM judge for bias | skill **`judge-bias-auditor`** (`../.claude/skills/judge-bias-auditor/`) |
-| Vet a benchmark before adopting it | subagent **`contamination-scanner`** (`../.claude/agents/contamination-scanner.md`) |
-| Understand what regressed after a gate fired | subagent **`eval-regression-tracer`** (`../.claude/agents/eval-regression-tracer.md`) |
+| Review a rubric before raters/judges see it | skill **`eval-rubric-reviewer`** (`skills/eval-rubric-reviewer/`) |
+| Check my LLM judge for bias | skill **`judge-bias-auditor`** (`skills/judge-bias-auditor/`) |
+| Vet a benchmark before adopting it | subagent **`contamination-scanner`** (`agents/contamination-scanner.md`) |
+| Understand what regressed after a gate fired | subagent **`eval-regression-tracer`** (`agents/eval-regression-tracer.md`) |
 | Decide if a score delta is real | `principles/statistical-rigor.md` |
+| Evaluate a RAG system (retriever vs. generator) | `topics/rag-evaluation.md` |
+| Evaluate a reasoning / extended-thinking model | `topics/reasoning-model-evals.md` |
 | Look up a term | `GLOSSARY.md` |
 
 **"I want the judgment on..."** — core tier, full depth (each with failure → detection → fix → prevention):
@@ -31,9 +33,17 @@
 - `principles/cost-and-scalability.md` — spend anatomy, sampling, parallelization hazards, tiered fidelity
 - `principles/multi-agent-orchestration.md` — when to split eval work across agents, fan-out patterns, agent-specific failure modes
 
-**Extended tier** — production patterns + pitfalls only: `topics/adversarial-evaluation.md` (methodology/metrics, no payloads) · `topics/agentic-task-evals.md` (trajectory scoring) · `topics/multimodal-evals.md` · `topics/rlhf-preference-data-evals.md`
+**Extended tier** — production patterns + pitfalls only: `topics/adversarial-evaluation.md` (methodology/metrics, no payloads) · `topics/agentic-task-evals.md` (trajectory scoring) · `topics/rag-evaluation.md` (retrieval metrics, faithfulness triad, attribution) · `topics/reasoning-model-evals.md` (thinking budgets, pass@k vs. consensus@k) · `topics/multimodal-evals.md` · `topics/rlhf-preference-data-evals.md`
 
 **Meta:** `DESIGN.md` (why doc vs. skill vs. subagent, per piece) · `GLOSSARY.md` · `CHANGELOG.md`
+
+## Adjacent KBs in this repo
+
+This KB measures; these attack, craft, and probe. Cross-links are in the relevant docs; the map:
+
+- `../ai-model-red-teamer/` — the attacking discipline our adversarial suites regression-test against (its `principles/robustness-evaluation.md`, `principles/automated-red-teaming.md`); also owns fairness/demographic-slice testing of the system under test (its `topics/bias-fairness-red-teaming.md`).
+- `../ai-agent-red-teamer/` — agentic attack surfaces (indirect injection, excessive agency) for the systems `topics/agentic-task-evals.md` scores.
+- `../prompt-engineer/` — prompt-craft fundamentals; judge prompts and rubric wording are production prompts (it links here for eval methodology; we link there for the craft).
 
 ## Reading paths
 

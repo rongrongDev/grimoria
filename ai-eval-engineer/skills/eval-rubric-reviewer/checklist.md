@@ -16,7 +16,7 @@ Apply every check to every criterion. Cite the check ID in findings (e.g., "A3")
 
 ## C. Coverage of the ugly cases
 - **C1 — Refusal policy** (justified and unjustified refusals distinguished?)
-- **C2 — Empty / truncated / malformed output policy
+- **C2 — Empty / truncated / malformed output policy** (each named, each with a stated verdict — and distinguished from an ordinary failing answer?)
 - **C3 — Partial success** (half the task done well — pass, fail, or partial? with the rule stated)
 - **C4 — Right-answer-wrong-behavior** (correct content via prohibited means, e.g., fabricated citation that happens to be right; for agentic rubrics see `ai-eval-engineer/topics/agentic-task-evals.md` illegitimate-success rule)
 

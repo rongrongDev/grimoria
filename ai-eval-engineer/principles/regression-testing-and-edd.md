@@ -1,6 +1,6 @@
 # Regression Testing & Eval-Driven Development
 
-**Version:** 1.0.0 · **Date:** 2026-07-06 · **Applies to:** CI-gated LLM/agent systems; harness-agnostic (promptfoo, Braintrust, LangSmith, custom); model families Claude 4.x/Fable 5, GPT-5.x era
+**Version:** 1.0.1 · **Date:** 2026-07-13 · **Applies to:** CI-gated LLM/agent systems; harness-agnostic (Inspect AI, DeepEval, promptfoo [OpenAI-owned since 2026-03, still OSS], Braintrust, LangSmith, custom — exemplar list re-checked 2026-07-13); model families Claude 4.x/Fable 5, GPT-5.x era
 **Audience:** standalone. This is the doc about making evals *load-bearing* — running in CI, blocking merges, surviving contact with a team that just wants to ship.
 
 ---
@@ -78,7 +78,7 @@ PR opened ──► Tier 0: deterministic + smoke (5 min, blocking)
              baselines re-pinned; suite CHANGELOG updated
 ```
 
-The `eval-regression-tracer` subagent (`.claude/agents/eval-regression-tracer.md`) exists because the "delta beyond band" branch is a context-heavy grind — hundreds of transcripts to diff and cluster — that shouldn't be done in your main working context, and *must not* be done by vibes ("looks like tone got worse") when McNemar's discordant set is sitting right there.
+The `eval-regression-tracer` subagent (`../agents/eval-regression-tracer.md`) exists because the "delta beyond band" branch is a context-heavy grind — hundreds of transcripts to diff and cluster — that shouldn't be done in your main working context, and *must not* be done by vibes ("looks like tone got worse") when McNemar's discordant set is sitting right there.
 
 ---
 
@@ -88,4 +88,4 @@ The `eval-regression-tracer` subagent (`.claude/agents/eval-regression-tracer.md
 - Set hygiene and dev/held-out tiers: `eval-design.md`, `contamination-and-leakage.md`
 - Keeping Tier 1 fast and cheap enough to actually run: `cost-and-scalability.md`
 - Sampling production failures into the suite: `production-offline-gap.md`
-- Subagent: `.claude/agents/eval-regression-tracer.md`
+- Subagent: `../agents/eval-regression-tracer.md`

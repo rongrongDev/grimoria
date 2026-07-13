@@ -1,6 +1,6 @@
 # Eval Design: Measuring What Matters
 
-**Version:** 1.0.0 · **Date:** 2026-07-06 · **Applies to:** any LLM/agent system (Claude 4.x/Fable 5, GPT-5.x, Gemini 3.x era); framework-agnostic (promptfoo, Braintrust, LangSmith, custom harnesses)
+**Version:** 1.0.1 · **Date:** 2026-07-13 · **Applies to:** any LLM/agent system (Claude 4.x/Fable 5, GPT-5.x, Gemini 3.x era); framework-agnostic (Inspect AI, DeepEval, promptfoo [OpenAI-owned since 2026-03, still OSS], Braintrust, LangSmith, custom harnesses — exemplar list re-checked 2026-07-13)
 **Audience:** anyone designing an eval, from junior engineer to autonomous agent. Standalone — no other doc required, but see `../guides/build-eval-suite-from-scratch.md` for the end-to-end workflow.
 
 ---
@@ -33,7 +33,7 @@ If you can't fill in the last clause — what a score *means* — you are about 
 **Decision tree — what kind of eval do you need?**
 
 - Output has a single verifiable answer (code passes tests, SQL returns right rows, extraction matches ground truth) → **programmatic scoring**. Cheapest, most trustworthy. Always prefer when possible.
-- Output is open-ended but decomposable into checkable claims (did it mention X, did it avoid Y, is it under N words) → **checklist/rubric scoring**, executed by LLM-as-judge per item ([llm-as-judge](./llm-as-judge.md) → `llm-as-judge.md`).
+- Output is open-ended but decomposable into checkable claims (did it mention X, did it avoid Y, is it under N words) → **checklist/rubric scoring**, executed by LLM-as-judge per item (`llm-as-judge.md`).
 - Quality is genuinely holistic or domain-expert-dependent (medical advice tone, legal correctness) → **human eval** (`human-evaluation.md`), with LLM-judge only after calibration against those humans.
 - You need "is A better than B" and can't define absolute quality → **pairwise comparison**, with position-bias controls (see `llm-as-judge.md`).
 
@@ -47,7 +47,7 @@ If you can't fill in the last clause — what a score *means* — you are about 
 
 - **Detection:** Give the rubric to two humans (or two different judge models) on 30–50 items. Compute agreement (Cohen's kappa; see `statistical-rigor.md` and GLOSSARY). Kappa < 0.6 means the rubric, not the annotators, is broken. Also: read 10 items where the judge's score surprises you — if you can't predict the judge's score before seeing it, the criterion is vague.
 - **Fix:** Decompose holistic criteria into binary, observable checks. "Helpful" becomes: "answers the question actually asked (Y/N)", "includes the specific figure requested (Y/N)", "does not require the user to ask a follow-up to act (Y/N)". Binary items force disagreement into the open, where you can adjudicate and rewrite.
-- **Prevention:** CI gate — no rubric merges without a recorded two-rater agreement check ≥ 0.7 kappa on a pilot set. Make the `eval-rubric-reviewer` skill (`.claude/skills/eval-rubric-reviewer/`) part of rubric review.
+- **Prevention:** CI gate — no rubric merges without a recorded two-rater agreement check ≥ 0.7 kappa on a pilot set. Make the `eval-rubric-reviewer` skill (`../skills/eval-rubric-reviewer/`) part of rubric review.
 
 ### Failure mode: measuring what's easy instead of what matters
 
@@ -120,5 +120,7 @@ Mixing rungs is normal: gate launches on rungs 1–4, use 5–7 as monitoring tr
 
 - End-to-end workflow: `../guides/build-eval-suite-from-scratch.md`
 - Auditing someone else's eval: `../guides/audit-existing-eval-setup.md`
-- Skills: `eval-rubric-reviewer` (rubric ambiguity review) — `.claude/skills/eval-rubric-reviewer/SKILL.md`
-- Subagent: `contamination-scanner` before adopting any external benchmark — `.claude/agents/contamination-scanner.md`
+- RAG systems (retriever-vs-generator attribution, the triad): `../topics/rag-evaluation.md` — the §measuring-what's-easy war story above is a RAG team's
+- Fairness/demographic-slice evaluation of the system under test (distinct from judge bias): `../../ai-model-red-teamer/topics/bias-fairness-red-teaming.md` (adjacent KB)
+- Skills: `eval-rubric-reviewer` (rubric ambiguity review) — `../skills/eval-rubric-reviewer/SKILL.md`
+- Subagent: `contamination-scanner` before adopting any external benchmark — `../agents/contamination-scanner.md`

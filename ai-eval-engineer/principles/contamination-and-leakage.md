@@ -1,7 +1,7 @@
 # Data Contamination & Leakage: When the Test Set Isn't a Test Anymore
 
 **Version:** 1.0.0 · **Date:** 2026-07-06 · **Applies to:** public benchmarks and private golden sets; any model family (contamination risk scales with training-corpus recency vs. benchmark publication date)
-**Audience:** standalone. Companion subagent: `.claude/agents/contamination-scanner.md` (runs dataset-scale scans in an isolated context).
+**Audience:** standalone. Companion subagent: `../agents/contamination-scanner.md` (runs dataset-scale scans in an isolated context).
 
 ---
 
@@ -67,4 +67,4 @@ Don't cry contamination for: honest distribution overlap (production-like items 
 - Golden-set hygiene and versioning: `eval-design.md`, `regression-testing-and-edd.md`
 - Held-out refresh from production traffic: `production-offline-gap.md`
 - Judge calibration sets are contaminatable too (overfitting the judge to its exam): `llm-as-judge.md`
-- Subagent: `.claude/agents/contamination-scanner.md` — the full scan protocol, isolated so megabytes of n-gram/similarity output never touch your main context
+- Subagent: `../agents/contamination-scanner.md` — the full scan protocol, isolated so megabytes of n-gram/similarity output never touch your main context
