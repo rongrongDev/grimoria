@@ -22,11 +22,15 @@ A library of principal-level engineering knowledge bases — one "grimoire" per 
 | iOS Developer | [`ios-dev/`](ios-dev/) |
 | ML Engineer | [`ml-engineer/`](ml-engineer/) |
 | Pentest Engineer | [`pentest-engineer/`](pentest-engineer/) |
+| Prompt Engineer | [`prompt-engineer/`](prompt-engineer/) |
 | Quality Developer | [`quality-dev/`](quality-dev/) |
 | Security Developer | [`security-dev/`](security-dev/) |
+| SEO Engineer | [`seo-engineer/`](seo-engineer/) |
 | Test Automation Engineer | [`test-automation-engineer/`](test-automation-engineer/) |
 | Test Data & Environment Engineer | [`test-data-environment-engineer/`](test-data-environment-engineer/) |
 | Tool Engineer | [`tool-engineer/`](tool-engineer/) |
+| UI Engineer | [`ui-engineer/`](ui-engineer/) |
+| UX Engineer | [`ux-engineer/`](ux-engineer/) |
 | Web Developer | [`web-dev/`](web-dev/) |
 
 Each knowledge base follows the same shape:

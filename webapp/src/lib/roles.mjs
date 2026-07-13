@@ -13,11 +13,15 @@ export const ROLES = [
   'ios-dev',
   'ml-engineer',
   'pentest-engineer',
+  'prompt-engineer',
   'quality-dev',
   'security-dev',
+  'seo-engineer',
   'test-automation-engineer',
   'test-data-environment-engineer',
   'tool-engineer',
+  'ui-engineer',
+  'ux-engineer',
   'web-dev',
 ];
 
@@ -25,6 +29,7 @@ export const ROLE_META = {
   'ai-engineer': { label: 'AI Engineer', group: 'AI & ML' },
   'ml-engineer': { label: 'ML Engineer', group: 'AI & ML' },
   'ai-eval-engineer': { label: 'AI Eval Engineer', group: 'AI & ML' },
+  'prompt-engineer': { label: 'Prompt Engineer', group: 'AI & ML' },
   'security-dev': { label: 'Security Dev', group: 'Security & Red Team' },
   'pentest-engineer': { label: 'Pentest Engineer', group: 'Security & Red Team' },
   'ai-model-red-teamer': { label: 'AI Model Red Teamer', group: 'Security & Red Team' },
@@ -35,6 +40,9 @@ export const ROLE_META = {
   'ios-dev': { label: 'iOS Dev', group: 'Software Engineering' },
   'game-dev': { label: 'Game Dev', group: 'Software Engineering' },
   'tool-engineer': { label: 'Tool Engineer', group: 'Software Engineering' },
+  'ui-engineer': { label: 'UI Engineer', group: 'Web & Design' },
+  'ux-engineer': { label: 'UX Engineer', group: 'Web & Design' },
+  'seo-engineer': { label: 'SEO Engineer', group: 'Web & Design' },
   'data-engineer': { label: 'Data Engineer', group: 'Data & Quality' },
   'data-analyst': { label: 'Data Analyst', group: 'Data & Quality' },
   'quality-dev': { label: 'Quality Dev', group: 'Data & Quality' },
@@ -42,4 +50,4 @@ export const ROLE_META = {
   'test-data-environment-engineer': { label: 'Test Data Environment Engineer', group: 'Data & Quality' },
 };
 
-export const GROUP_ORDER = ['AI & ML', 'Security & Red Team', 'Software Engineering', 'Data & Quality'];
+export const GROUP_ORDER = ['AI & ML', 'Security & Red Team', 'Software Engineering', 'Web & Design', 'Data & Quality'];

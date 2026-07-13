@@ -8,6 +8,7 @@ export type Doc = CollectionEntry<'docs'>;
 export const CATEGORY_ORDER = [
   'principles',
   'guides',
+  'orchestration',
   'topics',
   'stacks',
   'engines',
@@ -20,6 +21,7 @@ export const CATEGORY_ORDER = [
 const CATEGORY_LABELS: Record<string, string> = {
   principles: 'Principles',
   guides: 'Guides',
+  orchestration: 'Orchestration',
   topics: 'Topics',
   stacks: 'Stacks',
   engines: 'Engines',

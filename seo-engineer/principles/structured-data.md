@@ -1,0 +1,65 @@
+# Structured Data — Schema Markup, Rich Results, and Staying Out of Manual-Action Jail
+
+**Date:** 2026-07-13. **Reflects:** schema.org v29.x and Google rich-result feature list as of mid-2026. **Volatility warning:** Google adds and *removes* rich-result types regularly (FAQ and HowTo rich results were drastically curtailed in 2023; more have churned since). Before promising any rich result to stakeholders, verify the type still exists in Google's current "Structured data markup that Google Search supports" page.
+**Related:** executable validation: [`../skills/structured-data-validator/SKILL.md`](../skills/structured-data-validator/SKILL.md). Rendering placement: [`rendering-strategy.md`](rendering-strategy.md).
+
+## The mental model
+
+Structured data is machine-readable *testimony about your page*, and Google treats it exactly like testimony: it must be **valid** (parseable, required properties present), **eligible** (a type Google actually rewards, meeting its requirements — stricter than schema.org's), and **truthful** (matching what a human sees on the page). Three different bars, checked by three different mechanisms:
+
+- Invalid markup → silently ignored. You lose the benefit; nothing else happens.
+- Valid but ineligible → ignored for rich results (may still aid entity understanding).
+- Valid, eligible, but *untruthful* → this is the one with teeth: **spammy structured markup manual actions**, applied by human reviewers, which strip rich results site-wide and require a reconsideration request measured in weeks. Validators cannot catch untruthfulness. Only content review can.
+
+Corollary: run the tooling for bars 1–2, but bar 3 is a review discipline. Reviews on pages with no visible reviews, `AggregateRating` fabricated from nothing, `InStock` on dead products, prices that don't match the page — these are the manual-action classics, and every one of them passes the Rich Results Test.
+
+## Implementation rules (the non-negotiables)
+
+- **JSON-LD in a `<script type="application/ld+json">` block, in the server-rendered HTML.** JSON-LD is Google's recommended format; server-side placement is per [`rendering-strategy.md`](rendering-strategy.md) — JS-injected structured data works only if the render phase happens, which is the flaky path.
+- **One graph, consistent IDs.** Use `@id` to connect entities (Organization ↔ WebSite ↔ WebPage ↔ Article) rather than repeating disconnected blobs. Duplicate conflicting blocks (plugin + theme + hand-rolled — the WordPress classic) make Google pick arbitrarily.
+- **Google's feature documentation over schema.org, when they conflict.** schema.org defines the vocabulary; Google's per-feature pages define required/recommended properties for *rich-result eligibility*. Validate against both ([the skill](../skills/structured-data-validator/SKILL.md) sequences this).
+- **Structured data mirrors on-page content, never extends it.** If it's not visible to users on that page, it doesn't go in the markup. This one rule prevents the entire manual-action class.
+- **Every property from the page's data, none hardcoded.** Hardcoded `ratingValue: 4.8` in a template is fabrication at scale the moment it ships.
+
+## Which types to implement (decision guide)
+
+Priority order for effort, assuming eligibility (verify current support first — see volatility warning):
+
+1. **Foundation, every site:** `Organization` (logo, name, `sameAs` profiles) and `WebSite` on the homepage; `BreadcrumbList` site-wide. Cheap, stable, aids entity understanding and breadcrumb display.
+2. **Match your money pages' type:** `Product` (+`Offer`, +`AggregateRating` *if real reviews exist*) for e-commerce — the highest-ROI markup that exists, price/availability/stars in the SERP; `Article`/`NewsArticle` for publishers; `JobPosting`, `Event`, `Recipe`, `LocalBusiness`, `SoftwareApplication` per vertical. Each has a Google feature page with hard requirements — read it, don't guess.
+3. **Skip:** types with no current rich-result payoff *unless* they cost nothing from existing data. Markup is code; it has a maintenance cost and a truthfulness liability.
+
+## Failure modes
+
+### 1. Markup that doesn't validate / doesn't meet Google's requirements
+
+Missing required properties (`Product` without `offers` or review data gets no rich result), malformed JSON (a stray trailing comma silently kills the whole block — JSON-LD parsers are unforgiving), wrong types (`"price": "$19.99"` — currency symbol in a number field), dates not ISO 8601.
+
+- **Detection:** Rich Results Test / Schema Markup Validator per page during development; GSC's per-feature enhancement reports in production (they trend — a template bug shows as a cliff in "Items with errors"); [`structured-data-validator`](../skills/structured-data-validator/SKILL.md) on diffs and template inventories.
+- **Fix:** repair per the validator output; re-validate; request recrawl of an affected exemplar to confirm.
+- **Prevention:** structured data generated by typed builders from real data models (not string templates); CI validates rendered JSON-LD on one exemplar per template against required-property lists; GSC enhancement reports in the weekly monitoring review ([`monitoring-diagnosis.md`](monitoring-diagnosis.md)).
+
+### 2. Markup that lies — the manual-action magnet
+
+**The war story.** An e-commerce client added `AggregateRating` markup via a plugin that defaulted to 5.0 stars when a product had no reviews — which was 80% of the catalog. Stars appeared in SERPs; CTR jumped; everyone celebrated. Four months later: manual action for spammy structured markup. *All* rich results gone site-wide — including the legitimately-earned ones on the 20% — CTR fell below the pre-plugin baseline, and the reconsideration cycle took six weeks of fix-document-plead. Net effect of the plugin: strongly negative, with a lag that made the cause invisible to anyone who wasn't logging changes. Nobody had asked "where does 5.0 come from when there are no reviews?"
+
+- **Detection:** you mostly detect this *before Google does* or not at all: sample rendered markup vs visible page content per template (the accuracy pass in the validator skill). After the fact: GSC Manual Actions report (check it weekly; it's one click).
+- **Fix:** remove/correct the untruthful properties everywhere, document the fix, file reconsideration, wait. There is no fast path.
+- **Prevention:** the mirror rule above, enforced at code review; no default/fallback values for ratings, prices, availability — absent data means the *property is omitted*, never faked; audit any third-party SEO plugin's generated output before enabling (plugins wrote the markup in most manual actions I've cleaned up).
+
+### 3. Missing markup where it would pay
+
+The quiet failure: competitors' product listings show stars and prices, yours don't, and their CTR advantage compounds into a ranking advantage. Not an error state — just money left on the table.
+
+- **Detection:** SERP-check your top money queries and compare rich-result presence vs competitors; inventory templates against the type-priority list above.
+- **Fix/prevention:** implement per the decision guide; add "does this content type have an eligible rich result?" to the definition-of-done for new page templates.
+
+## Testing & monitoring pipeline
+
+| Stage | Check |
+|---|---|
+| Development | Rich Results Test on the rendered page; accuracy self-review against visible content |
+| CI | Parse + required-property validation of rendered JSON-LD, one exemplar per template |
+| Code review | [`structured-data-validator`](../skills/structured-data-validator/SKILL.md) on any diff touching markup or its data sources |
+| Weekly | GSC enhancement reports (trend) + Manual Actions report |
+| Quarterly | Template-inventory accuracy audit — fan-out pattern in [`../orchestration/README.md`](../orchestration/README.md) |

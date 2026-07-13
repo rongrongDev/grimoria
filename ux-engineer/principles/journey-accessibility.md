@@ -1,0 +1,60 @@
+# Accessibility as a User Journey — Compliance Is Per-Element, Usability Is Per-Task
+
+**Scope:** flow/journey level. The component-construction half (focus traps, contrast, widget semantics) is owned by `ui-engineer/principles/component-accessibility.md` — this doc assumes it and adds the journey delta. **Validated against:** WCAG 2.2 AA (Rec. 2023; 2.4.11, 3.2.6, 3.3.7, 3.3.8 are the 2.2 additions used here), ARIA 1.2, axe-core 4.x, NVDA + VoiceOver current. **Date:** 2026-07-13.
+
+## The mental model
+
+WCAG conformance is assessed per page and per element. Users don't experience pages and elements — they experience **tasks**: find the plan, enter the card, fix the validation error, get the confirmation. A flow can be built entirely from individually accessible components and still be impossible to complete with a keyboard or a screen reader, because the failures live *between* the components: where focus goes when a step unmounts, whether anyone announces that results arrived, whether the error summary is reachable from where the user actually is. **The unit of accessibility testing is the task, not the element.** 
+
+Corollary one: **automated scanners are structurally blind to journeys.** axe-core and friends evaluate a DOM snapshot — they catch roughly a third to half of WCAG issues (missing labels, contrast, bad ARIA) and *zero percent* of "can a screen-reader user complete checkout," because task completion isn't a property of any DOM snapshot. A clean scan means the scannable layer is clean. It is the beginning of verification, never the end.
+
+Corollary two: the money paths get verified by *doing them*. Keyboard-only, then screen reader, task-to-completion. Two hours per flow, and it finds the failures that generate lawsuits and abandonments — which are overwhelmingly journey failures, not contrast failures.
+
+## Failure modes
+
+### 1. Passes the scanner, fails the keyboard
+
+- **Failure:** every component is individually operable, but the *task* dead-ends: the custom date picker opens on click but there's no keyboard path into it; the "Continue" button is reachable only after tabbing through 40 footer links; an interstitial promo can't be dismissed without a pointer; hover-revealed row actions never materialize for focus. The user isn't inconvenienced — they are *stopped*. This is the usability-test failure that shaped this KB: a keyboard-only participant could not complete a flow that had passed automated scans for months, because nobody had ever manually walked it.
+- **Detection:** the keyboard walkthrough — unplug the mouse (physically; discipline requires it) and complete the flow's task: every operation, including error recovery and dismissing anything that appears. Record where you stall. Then check WCAG 2.1.1 (keyboard), 2.1.2 (no traps), 2.4.7 (visible focus — you cannot operate what you cannot see), 2.4.11 (focus not obscured — the 2.2 criterion sticky headers violate constantly).
+- **Fix:** per stall: give every pointer path a keyboard path (`interaction-design.md` §4's parity rule is the same rule); fix tab-order gauntlets with sensible DOM order and a skip link; ensure anything that appears (modal, toast with action, promo) is focusable, dismissible via Escape, and doesn't strand focus.
+- **Prevention:** keyboard task-completion is a per-flow definition-of-done line item, run by a person or the `journey-accessibility-reviewer` skill before ship, and re-run when the flow's steps change — not annually. New-flow specs include the keyboard path explicitly (`spec-handoff.md`).
+
+### 2. Focus discontinuity between steps
+
+- **Failure:** the flow's *transitions* drop the thread. SPA route/step change: the old step unmounts, focus silently falls to `<body>`, and the screen reader says nothing — the user hears silence and must scan the whole page to discover what happened. Deleting an item: focus dies with the deleted node. Modal closes: focus lands at document top instead of returning to the trigger, so the user is teleported. Multi-step form: "Next" click leaves focus on the now-gone button. Each individual screen is fine; the *seams* are broken. Also here: focus order that fights visual order (WCAG 2.4.3) because DOM order was an implementation afterthought — the keyboard user experiences the page in an order no sighted designer ever saw.
+- **Detection:** walk the flow with a screen reader and *listen at every transition* — silence after an action is the failure signature. Programmatic check: after each step change, `document.activeElement` should never be `<body>`. For order: tab through each step and narrate positions — does the sequence match the visual/logical reading order?
+- **Fix:** own focus at every seam, as spec'd behavior: on step/route change, move focus to the new step's heading (`tabindex="-1"` + `.focus()` on the `<h1>`/step title — announcing context, not the first field, so the user knows *where they are* before *what to do*); on deletion, move focus to the next sibling or the list container with an announcement; modal close returns focus to its trigger (component contract — `ui-engineer/principles/component-accessibility.md` §focus-contract — but *verifying it happens in this flow* is journey work); keep DOM order aligned with visual order rather than repairing with `tabindex` numbers (positive tabindex is a code smell that means the order is lying somewhere).
+- **Prevention:** the interaction spec's state matrix includes a **focus column**: for every transition, where focus lands and what is announced (`spec-handoff.md` §2). If the spec can't say, the design isn't finished.
+
+### 3. Dynamic updates that never get announced
+
+- **Failure:** the visual channel updates, the auditory channel doesn't. Search results load — silence. Form validation fails inline — the sighted user sees red text; the screen-reader user hears nothing and submits again. "3 items added to cart" toast — invisible to AT. Async save succeeds — silence. The screen-reader user's model of the system drifts further from reality with every update, the exact desynchronization `interaction-design.md` §1 describes, but total. This is WCAG 4.1.3 (Status Messages) and it fails in most SPAs I've audited.
+- **Detection:** screen reader on, perform every async action in the flow, and note which state changes you *hear*. Anything you learned by looking, an AT user didn't learn.
+- **Fix:** live regions, applied with restraint: a polite `aria-live` status region for results counts, save confirmations, loading→loaded transitions ("14 results"); `role="alert"` (assertive) only for errors that block progress; validation errors additionally associated to their fields (`aria-describedby` + `aria-invalid`) with an error *summary* that receives focus on failed submit — the summary is the journey-level half that per-field wiring doesn't cover, and it must link each error to its field, because "3 errors somewhere above" at the bottom of a long form is its own failure. Live regions must exist in the DOM *before* content changes (injecting a live region and its content together frequently announces nothing), and don't announce everything — a chat app announcing every keystroke's echo teaches users to turn the feature off.
+- **Prevention:** every async mutation in the spec names its announcement text alongside its visual feedback — one column, same table (`spec-handoff.md`). The `journey-accessibility-reviewer` skill checks announcements per transition as a first-class pass.
+
+### 4. Journey-level context and continuity failures
+
+- **Failure:** the flow works element-by-element but burns the user's *progress or context*: a session timeout mid-checkout discards the form with no warning and no way to extend (WCAG 2.2.1); step 4 re-asks what step 1 already collected (3.3.7 Redundant Entry — cognitively expensive for everyone, a wall for memory-impaired users); the same action is labeled "Save" on one step, "Apply" on the next, "Done" on the third (3.2.4 consistency — each rename forces re-verification that it's the same operation); an accessible-per-element CAPTCHA gates the whole journey (3.3.8); the error page after a failed payment has no path back to the filled-in form. None of these show up in any per-screen review, because each *screen* is fine.
+- **Detection:** these only fall out of end-to-end passes: complete the journey slowly (timeout behavior), complete it twice (redundant entry), read every step's action labels side by side (consistency), and force the failure paths — expired session, declined card, network drop mid-step — and check the user's data and orientation survive.
+- **Fix / prevention:** timeouts warn before expiry with a keyboard-reachable extend, and drafts survive re-auth; collected data is carried forward (pre-filled, or a visible summary) rather than re-asked; one flow, one verb per operation — the flow's *terminology table* is part of its spec; every failure state answers "how does the user get back to where they were, with their data?" The `auditing-a-flow/README.md` playbook's consistency pass exists to catch exactly this class across an inherited product.
+
+## Decision tree — "how do I verify this flow?"
+
+1. **Scanner pass** (axe on each step's states — cheap, catches the element layer; component fixes → `ui-engineer/principles/component-accessibility.md`). A clean result here means: proceed to the real test.
+2. **Keyboard task-completion** (mouse unplugged): complete the task, including one error recovery and one dismissal. Any stall = §1 finding; any invisible focus = 2.4.7; any obscured focus = 2.4.11.
+3. **Screen-reader task-completion** (NVDA/Firefox or VoiceOver/Safari — one desktop SR minimum): listen at every transition (§2) and after every async action (§3). Silence = finding.
+4. **Continuity pass**: timeout, re-entry, terminology, failure-path recovery (§4).
+5. **One flow, before ship** → run steps 1–4 yourself or invoke the `journey-accessibility-reviewer` skill. **Whole product / many flows** → dispatch the `flow-accessibility-auditor` subagent per flow (`orchestration/README.md` for the fan-out pattern).
+6. Findings feed the same severity × frequency prioritization as any usability finding (`usability-testing.md`) — a task-blocking a11y failure on the checkout path outranks everything else in the backlog.
+
+## War story
+
+The failure that made this doc: a checkout flow, quarterly axe scans green for a year, WCAG "conformant" on paper. A usability round happened to recruit a participant with a motor impairment who navigated by keyboard. Step 2 had a shipping-method listbox — a styled custom widget, individually keyboard-operable, tested in Storybook, fully compliant. But selecting an option triggered a price-summary re-render that *remounted the entire step*, and focus fell to `<body>`. Sighted users never noticed; the participant was thrown to the top of the page after every selection, tabbed back through 30+ stops, changed the option, was thrown again. After four minutes of this Sisyphean loop, the participant said, flatly, "this is what most of the internet is like for me," and abandoned — the task, and, they mentioned, usually the vendor. Every component had passed. The *journey* had never been walked. The fix was four lines (preserve focus across the remount). The process fix was permanent: task-level keyboard and screen-reader passes on money paths before ship, no exceptions, and scanner results reported as "element layer clean," never as "accessible."
+
+## Related
+
+- Component-construction half (focus traps, semantics, contrast, target size): `ui-engineer/principles/component-accessibility.md`.
+- Feedback and state synchronization for all users (the same desync, visual channel): `interaction-design.md`.
+- Spec columns that make this preventable (focus, announcement, terminology): `spec-handoff.md`.
+- Executable versions: `skills/journey-accessibility-reviewer/SKILL.md` (one flow, inline), `agents/flow-accessibility-auditor.md` (end-to-end sweep, isolated context).

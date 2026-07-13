@@ -1,0 +1,28 @@
+# Design-System Collaboration — Production Patterns & Common Pitfalls
+
+**Tier:** extended (patterns + pitfalls only). **Scope:** how UX engineering works *with* the design system that `ui-engineer/` owns — prototyping with system components, proposing what's missing, feeding validated findings back. The system itself (tokens, APIs, governance) is entirely `ui-engineer/`'s. **Date:** 2026-07-13.
+
+## The mental model in one paragraph
+
+The design system and the prototype have opposite jobs: the system exists to make *settled* decisions cheap and consistent; the prototype exists to make *unsettled* decisions testable. UX engineering sits where they meet, and the craft is knowing which mode you're in. Building a prototype *from* system components is the biggest speed multiplier this role has — most decisions pre-made, real interaction fidelity nearly free — but it turns the visual dial to maximum whether you wanted it or not, which is exactly the `prototyping-fidelity.md` §1 trap (polish → "ship it"). Conversely, exploring *outside* the system is legitimate — that's what exploration is — but what ships must come back through the system's gate, and validated prototype findings are the best contribution pipeline the system has.
+
+## Production patterns
+
+- **Default to system components for interaction-fidelity questions, and de-polish deliberately.** When the question is flow logic or comprehension, system components give you real keyboard behavior, real states, real focus management for free — fidelity you'd never hand-build in a throwaway. Counteract the polish side effect explicitly: wireframe theme (a gray token theme is a one-file trick worth institutionalizing — one of the best uses of the system's theming layer), watermark, fidelity contract in the invite (`prototyping-fidelity.md` §1).
+- **Exploration may break the system; shipping may not.** Prototype with off-system UI when the question demands it (a new interaction pattern the system doesn't have). The rule is about the *exit*: findings from an off-system prototype produce either (a) a spec that maps the validated behavior onto existing system components, or (b) a **component proposal** into the system's contribution process (`ui-engineer/principles/governance.md`) with the research attached. What never happens: the off-system prototype code drifting into production as a one-off — that's a fork with a research alibi (`ui-engineer/principles/component-api.md` §3).
+- **A missing component is a finding, not a blocker.** Mid-prototype, the system has no combobox that does X: note it, build the cheapest stand-in, keep moving — the prototype's schedule serves the research question. File the gap with the evidence of need. (Same rule agents follow: `orchestration/README.md`, never mint vocabulary mid-task.)
+- **Feed usability findings back to the component, not just the flow.** When testing reveals a *component-level* problem (the system's date picker confuses everyone, not just your flow's use of it), route it to the system team with the session evidence — severity × frequency attached (`usability-testing.md` §2). A design system with no inbound research channel is flying blind; you are that channel.
+- **Co-review the seams.** For any screen both roles touch, the split is: `ui-engineer` reviews token/API/construction conformance (their `design-system-consistency-reviewer` skill), UX engineering reviews journey behavior (the `journey-accessibility-reviewer` skill, the state matrix). Run both; neither covers the other's half.
+
+## Common pitfalls
+
+1. **The system-polished demo that becomes a commitment.** Built in two days *because* the system is good; leadership prices it as two days of remaining work. *Prevention:* fidelity contract + wireframe theme; see the full treatment in `prototyping-fidelity.md` §1 — this pitfall is that failure mode with a design-system accelerant.
+2. **Treating system constraints as design constraints during discovery.** "The system doesn't have a stepper, so the flow can't be a wizard" — backwards. Discover the right interaction first (`building-a-validated-flow/README.md`), then reconcile: map to system parts, or propose the gap. Systems serve validated designs, not the reverse; a system that vetoes research questions is governing beyond its mandate.
+3. **The reverse error: gratuitous divergence.** The prototype invents a novel dropdown because the author was exploring *visually* while the question was about *flow* — now test participants stumble on the unfamiliar control and pollute the signal (`usability-testing.md` §4: apparatus noise), and the handoff spec describes UI that will never ship. Diverge only on the dials the question loads on.
+4. **Prototype stand-ins leaking into the spec.** The spec hands off the prototype's improvised control instead of the system's real one; engineering builds a second combobox; the system team finds out in the drift census. *Prevention:* a "prototype-only elements" section in the spec that explicitly maps each stand-in to its system component or open proposal (`spec-handoff.md` decision tree §6).
+5. **Component-level findings dying in flow-level reports.** The readout says "step 3 confused users" when the mechanism was the shared date picker — so seven other teams keep the bug. *Prevention:* the mechanism step in `research-to-spec.md` §2 names the component when the component is the cause; route accordingly.
+
+## Related
+
+- The system's own rules (tokens, APIs, contribution, governance): `ui-engineer/README.md` — start at `principles/governance.md` for the contribution path.
+- Fidelity dials and the polish trap: `principles/prototyping-fidelity.md`. Spec seams: `principles/spec-handoff.md`.

@@ -1,0 +1,81 @@
+# Core Principles — 12 Rules and the Failures That Paid for Them
+
+**Last reviewed:** 2026-07-13 · **Applies to:** model-agnostic; war-story specifics observed on Claude 3.x–5 and GPT-4–5-era models.
+**Read this when:** onboarding to prompt work, or before arguing that any rule below doesn't apply to your case.
+
+These are not tips. Each rule was purchased with a production incident, and each is stated with its price tag so the next editor doesn't optimize it away. The deep treatment of each lives in the `topics/` docs; this is the worldview they instantiate.
+
+---
+
+## 1. A production prompt is a program — written in natural language, executed by a probabilistic interpreter, against real-world input
+
+Everything else follows from this. Programs get code review, version control, regression tests, and a changelog. The moment a prompt runs more than once on input you didn't write, it deserves all four. The industry's default — prompts as untracked strings pasted into a config field — is the equivalent of deploying uncommitted code by FTP, and it produces the same archaeology: nobody knows what changed, when, or why the output shifted last Tuesday.
+
+**The price tag:** a team spent three days bisecting a "model regression" that was actually a colleague's hotfixed adjective. See `topics/versioning-and-regression-testing.md`.
+
+## 2. Ambiguity is a bug that ships silently
+
+Every decision your prompt doesn't make, the model makes per-request — and it is under no obligation to make it the same way twice. Ambiguity doesn't fail loudly; it produces *defensible-but-different* outputs that pass casual review and fork behavior across thousands of requests. The test is never "do I know what I mean?" — it's "could two reasonable readers pick differently?"
+
+**The price tag:** an invoice extractor told to output "the date" (issue date? due date? service date?) picked differently on ~15% of documents for a month. The engineer knew which date they meant. The prompt didn't say. See `topics/clarity-and-specification.md`.
+
+## 3. Boring beats clever
+
+Reliability comes from explicitness, not incantations. Prompts accumulate folk magic — "take a deep breath," threats, tips, elaborate personas — that tested well once, on one model, on one task, and then got cargo-culted. Every clever flourish is a dependency on undocumented model behavior that the next model version is free to break. The rewrite that improves a struggling prompt is almost always toward *duller*: shorter sentences, one instruction per sentence, concrete nouns, an example.
+
+**The price tag:** a "You are the world's greatest financial analyst, and lives depend on your precision" preamble was replaced with three sentences stating the actual output rules; error rate halved. The persona had been *displacing* specification — the author felt done after writing it.
+
+## 4. The model reads the prompt you wrote, not the one you meant
+
+You carry context the prompt doesn't: the meeting where "summary" was defined, the schema in the codebase, the customer who complained. The model has only the tokens. The single most effective review technique in this discipline is *ignorance simulation*: have someone (or a smaller model) answer the task from the prompt text alone. Every question they ask is a decision the model is currently making by itself. This is what the `prompt-clarity-reviewer` skill mechanizes.
+
+## 5. Examples teach with more authority than instructions — and they teach everything they demonstrate
+
+When instructions and examples disagree, the model usually follows the examples. This makes few-shot examples your most powerful tool and your most dangerous one: they teach format, length, tone, edge-case handling, *and every accidental regularity in them*. Three examples that all happen to have two-sentence outputs teach "two sentences" more firmly than any instruction. The examples are load-bearing spec; audit them like spec.
+
+**The price tag:** a classifier's three examples were all negative-sentiment; the model over-predicted the negative class by 11 points until someone noticed the examples, not the instructions, were the operative spec. See `topics/few-shot-examples.md`.
+
+## 6. Never change a prompt without a regression set — even a small one
+
+Prompt edits are non-local: a sentence added to fix case A silently shifts behavior on cases B through Z, because every token in context conditions every output token. The only defense is a pinned set of known-good cases run before and after every change. Twenty cases catch most regressions; zero cases catch none. "It still works on the example I tried" is how old failures get reintroduced in even-numbered releases and fixed again in odd ones.
+
+See `topics/versioning-and-regression-testing.md`; the `prompt-version-differ` subagent runs the before/after mechanically.
+
+## 7. Reasoning traces are output, not introspection
+
+Chain-of-thought text is *output shaped like reasoning* — generated by the same next-token process as everything else, not a transcript of the model's actual computation. It often improves accuracy on genuinely multi-step tasks; it is never a correctness *guarantee*, and plausible-looking traces routinely accompany wrong answers (and vice versa). Grade prompts on final answers against ground truth; read traces for *debugging hypotheses*, never as proof.
+
+**The price tag:** a review process approved outputs whose reasoning "looked rigorous"; an eval against ground truth later showed the trace-approved set was no more accurate than the rest. See `topics/reasoning-elicitation.md`.
+
+## 8. Format constraints fight the model's priors — enforce syntax mechanically, spend prompt effort on semantics
+
+Models have strong learned tendencies (prose explanations, markdown, apologetic preambles). A prompt demanding exotic structure is in a constant tug-of-war with those priors, and under real-world input variety the priors win a percentage of the time. Where the API offers enforced structure (tool schemas, JSON mode), use it and let the prompt govern *content*; where it doesn't, anchor with a literal output skeleton and examples, not adjectives. See `topics/structured-output.md`.
+
+## 9. Every instruction added to fix one case taxes every other case
+
+System prompts rot by accretion: each production incident adds a sentence, nobody deletes, and after a year the prompt is an archaeological dig of contradictory patches the model resolves unpredictably per-request. Instructions are not free — each one dilutes attention on the others and enlarges the surface for conflicts. The discipline: every added rule names the case that motivated it (in the version history, not the prompt), and every rule that can be a regression-set case *instead* of a prompt sentence should be.
+
+**The price tag:** an 1,800-token support-bot system prompt contained both "always offer a callback" (added March) and "never offer callbacks during high-volume periods" (added July) with no definition of high-volume. The model alternated. Nobody had read the whole prompt in months. See `topics/system-prompt-design.md`.
+
+## 10. Position is meaning: beginnings and endings are load-bearing
+
+Attention over long contexts is not uniform — instructions buried mid-prompt underperform the same instructions placed first or last, and the final tokens before generation exert outsized pull on output shape. Standard layout: role and hard constraints early; large reference material in the middle, clearly delimited; the immediate task and output-format anchor last. When an instruction "isn't being followed," the cheapest first fix is moving it, not repeating it. (Repetition works but pays rent forever — see `extended/cost-and-token-efficiency.md`.)
+
+## 11. Trusted instructions and untrusted data must be structurally distinguishable
+
+If your prompt interleaves your instructions with user text, retrieved documents, or tool results without a hard structural boundary, then *anyone who can influence those bytes can write to your instruction plane*. Delimit untrusted content unambiguously and declare its data-plane status explicitly. This is a design-hygiene rule, not a security guarantee — the adversarial discipline lives in `@ai-agent-red-teamer/`, and the system-level defenses (privilege separation, deterministic gates) in `@ai-engineer/topics/prompt-design.md` §2. But a prompt that doesn't even mark the boundary has made injection *easy*, and that part is squarely the prompt author's job. See `extended/injection-aware-structure.md`.
+
+## 12. What works is an empirical fact about *this* model version — date-stamp everything
+
+Prompting guidance has a shelf life measured in model releases. Formatting preferences, instruction-following style, CoT benefit, schema adherence — all shift between versions, sometimes between minor versions. Two consequences: (a) every prompt's documentation states which model it was validated on, and a model upgrade re-runs the regression set *before* traffic moves; (b) never assume a prompt transfers across model families unchanged — see `extended/cross-model-portability.md`.
+
+**The price tag:** a team upgraded model versions with no regression run because "the prompt didn't change." Extraction accuracy dropped 6 points for two weeks. The prompt is only half the program; the interpreter changed.
+
+---
+
+## How to use these rules
+
+- Writing a new prompt → `guides/build-a-production-prompt.md` walks these in order.
+- Reviewing someone else's → `guides/audit-an-existing-prompt.md`; skills `prompt-clarity-reviewer` and `few-shot-example-auditor` mechanize rules 2, 4, and 5.
+- Arguing about a design fork → `principles/decision-trees.md` has the defaults.
+- Any rule feels wrong for your case → maybe. Reproduce the war story's failure on your setup first; if it doesn't reproduce on your model and task, document that and deviate deliberately. That's engineering. Deviating because the rule is inconvenient is how the war stories got written.
