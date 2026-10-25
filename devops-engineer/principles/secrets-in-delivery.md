@@ -1,0 +1,53 @@
+# Secrets in the Delivery Path: Assume the Leak, Design for the Rotation
+
+**Applies to:** concepts tool-agnostic; examples cite GitHub Actions OIDC, Vault/cloud secret managers (AWS Secrets Manager / GCP Secret Manager-class), External Secrets Operator, cloud IAM (verified 2026) · **Last verified:** 2026-07-14
+
+**The one-sentence philosophy:** every secret your delivery pipeline touches will eventually be exposed — in a log, a state file, a fork PR, a laptop, a git history — so the design goal is not "never leak" but *leaks don't matter much and rotation doesn't hurt*: short-lived credentials that expire before an attacker uses them, scopes so narrow a leak buys little, and rotation so routine it can't break a deploy. A team that fears rotating a credential has already told you everything: that secret is load-bearing, long-lived, over-scoped, and copied into places nobody remembers.
+
+**Scope:** this doc owns secrets *as delivery mechanics* — how CI authenticates, how deploys inject credentials, how rotation coexists with running workloads. Threat modeling, secret-leak incident response beyond rotation, and org-wide security policy → `security-dev/`.
+
+## The model, in order of preference
+
+1. **No secret at all: federated identity (OIDC).** CI jobs exchange their runner's identity token for short-lived cloud credentials (GitHub Actions OIDC → AWS `AssumeRoleWithWebIdentity` / GCP Workload Identity Federation). Nothing stored, nothing to rotate, nothing to leak that outlives minutes — and the trust policy can pin *which repo, which branch, which environment* may assume the role. This is the default for pipeline→cloud auth in 2026; long-lived cloud keys in CI secret stores are legacy debt with a migration ticket.
+2. **Short-lived, machine-issued secrets** where federation can't reach (DB creds from Vault dynamic secrets, cloud-issued DB auth tokens). Leak window = TTL.
+3. **Long-lived secrets in a manager, referenced not copied.** The secret lives in exactly one system of record (Vault/cloud secret manager); everything else — CI, manifests, apps — holds a *reference* resolved at use time (External Secrets Operator-class sync for Kubernetes). One home means rotation is one write.
+4. **Never:** secrets in git (any branch, any history), in image layers, in Terraform state left unencrypted/world-readable, in job-global CI env, in wikis or chat.
+
+**Scoping rules regardless of tier:** one credential per pipeline-purpose per environment (build-time pull ≠ deploy-time apply ≠ test-fixture login); prod credentials only reachable from prod-deploy contexts (environment-protected jobs, separate cloud accounts — the same two-mistakes structure as `devops-engineer/principles/infrastructure-as-code.md`); secrets exposed to the narrowest unit the platform allows (step-scoped env, not job-global).
+
+## Failure modes
+
+### 1. Secret sprawl across stages and environments
+
+- **Failure mode:** the same credential copied into three CI systems, four env vars, two wikis, and a teammate's dotfiles — because copying was easier than referencing. Now nobody can enumerate where it lives, so nobody can rotate it, so it's been valid for four years, so its blast radius is everything it ever touched. Sprawl is self-reinforcing: the harder rotation looks, the more people cache copies "to be safe."
+- **Detection:** the enumeration test: pick a production credential and ask "list every place this value exists." Silence or a shrug is the finding. Mechanically: secret-manager access logs showing *reads from unexpected principals*, secret scanning across CI variable stores and repos, and an inventory reconciliation — secrets in the manager vs. secrets configured in CI vs. secrets apps actually read.
+- **Fix:** consolidate to the single system of record, replace copies with references, then *rotate everything that was sprawled* — consolidation without rotation just centralizes the already-leaked value.
+- **Prevention:** the reference pattern as scaffold default (new service templates come wired to the secret manager, so the easy path is the right path — mechanism); secret creation goes through the manager or it doesn't get provisioned (gate); quarterly inventory reconciliation (monitor).
+
+### 2. Over-privileged CI runners and service accounts
+
+- **Failure mode:** the CI role has `AdministratorAccess` because scoping it down was "temporary" friction three years ago. Now every PR author, every compromised dependency (`devops-engineer/topics/supply-chain-integrity.md`), every flaky third-party Action executes with keys to the kingdom — the pipeline is the softest path to prod and the audit log calls the attacker "ci-deploy". A subtle variant: one shared runner pool where the *lowest-trust* job (fork PR lint) and the *highest-trust* job (prod apply) execute with the same ambient identity.
+- **Detection:** IAM access-analyzer/last-accessed data: permissions granted vs. permissions used in 90 days — the gap is the unnecessary blast radius. Ask "what could a malicious PR to our least-important repo do?" and follow the credentials honestly.
+- **Fix:** split identities per purpose and per environment; scope each to the resources its stage actually touches (the plan/apply split from `devops-engineer/principles/infrastructure-as-code.md` is the model: plan-role reads, apply-role writes, only the apply job — behind review — gets the latter); isolate runner pools by trust tier; fork PRs get no secrets and no privileged runners, full stop (`devops-engineer/principles/cicd-pipelines.md`, hostile-input rule).
+- **Prevention:** new pipeline identities start from deny-all and add named permissions with a named reason (mechanism); quarterly unused-permission pruning from the access data (monitor); any wildcard grant in IaC-managed IAM requires a second approver (gate — and IAM *should* be IaC-managed, so this is a plan review, `devops-engineer/skills/terraform-plan-auditor/`).
+
+### 3. Secrets in version control — including "removed" ones
+
+- **Failure mode:** a `.env` committed at 2am, an API key pasted into a test fixture, a kubeconfig in an example dir. The fatal misunderstanding is the fix: a follow-up commit deleting the file removes nothing — git history preserves it, every clone and fork carries it, and scrapers harvest public-repo commits in *minutes* (this is measured reality, not paranoia: honeypot keys pushed to public GitHub see first abuse attempts inside 10 minutes). A secret that has ever been committed is compromised, past tense.
+- **Detection:** pre-commit + pre-receive scanning (gitleaks/trufflehog-class, plus the platform's push protection — GitHub's blocks known formats at push time); periodic full-*history* scans, because today's scanner knows patterns last year's missed.
+- **Fix, in this order:** (1) **rotate the credential immediately** — this is the whole fix; everything after is hygiene; (2) then, optionally, rewrite history (`git filter-repo`) and force-push, understanding forks and clones still have it; (3) find what the credential accessed during exposure (audit logs) — that analysis and anything it turns up → `security-dev/`.
+- **Prevention:** push protection + pre-commit hooks org-wide (gate); the reference pattern so there's no reason a value ever nears a repo (mechanism); honeytoken canary credentials seeded where secrets might leak, alerting on use (monitor); a written no-blame fast-path for "I just committed a secret" — the engineer who reports in 5 minutes beats the scanner that finds it in a week, and blame buys you silence, not safety.
+
+### 4. Rotation that breaks running deployments
+
+- **Failure mode:** the credential is rotated and production goes down — because rotation was modeled as *replace*, not *overlap*. Running pods cached the old value at boot and won't re-read it; the new value propagated to the manager but not to the CI variable that was a copy, so the next deploy ships the stale one; or old-value invalidation was instant, so every consumer that hadn't yet restarted began failing auth mid-rotation. Teams burned this way conclude "rotation is dangerous" and stop rotating — which is how you meet failure modes 1–3 again, with older credentials.
+- **Detection:** auth-failure spikes correlated with rotation events; more usefully *before* the pain — the inventory: which consumers read this secret, at boot or per-use, and how do they learn of a change?
+- **Fix/prevention — the two-key pattern, mechanically:** (1) issue new credential; old and new both valid (this requires the backing system to support overlapping credentials — a hard requirement to design in, and the thing to check *before* adopting a store or auth scheme); (2) roll consumers to the new value at their own pace — redeploy, or hot-reload via the reference pattern (consumers holding references re-resolve; consumers holding copies are the bug); (3) confirm zero uses of the old credential *from access logs, not from assumption*; (4) revoke old. Rotation then becomes a rolling deploy of a config value — boring by design. Make it a *scheduled, automated* routine (mechanism), because a rotation path exercised monthly can't accumulate the surprises an annual panic-rotation discovers all at once; and an *unscheduled* rotation drill twice a year proves the emergency path — when a real leak forces rotation *now*, "now" must already be rehearsed.
+
+## The pipeline-stage view (where each rule bites)
+
+**Build:** no secrets in images or build args (layer history is forever — `devops-engineer/principles/containers-and-orchestration.md`); registry push via OIDC. **Test:** test fixtures get their own low-value credentials, never prod's; fork PRs get nothing. **Plan/apply (IaC):** state files carry provider-returned secrets — encrypt backend, restrict reads (`devops-engineer/principles/infrastructure-as-code.md`); plan-role ≠ apply-role. **Deploy:** injection at runtime via references (ESO/CSI-class), step-scoped; never `kubectl create secret` from a laptop shell history. **Logs:** masking is a seatbelt, not a strategy — scan job output, and treat any hit as a rotation trigger (`devops-engineer/principles/cicd-pipelines.md`, failure mode 3).
+
+## References
+
+CI log-leak mechanics: `devops-engineer/principles/cicd-pipelines.md` · state-file exposure: `devops-engineer/principles/infrastructure-as-code.md` · image-layer exposure: `devops-engineer/principles/containers-and-orchestration.md` · dependency-compromise path to secrets: `devops-engineer/topics/supply-chain-integrity.md` · secrets-exposure review in a full audit: `devops-engineer/skills/delivery-posture-assessor/` · threat modeling, leak incident response, security policy: `security-dev/`
