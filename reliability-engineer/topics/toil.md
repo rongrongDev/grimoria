@@ -1,0 +1,31 @@
+# Toil Measurement & Reduction — Production Patterns & Common Pitfalls
+
+**Applies to:** tool-agnostic; extended-tier doc: patterns + pitfalls only · **Last verified:** 2026-07-14
+
+**Working definition** (full glossary: `reliability-engineer/GLOSSARY.md`): **toil** is operational work that is manual, repetitive, automatable, reactive, and scales linearly with service growth while producing no enduring value. Restarting the stuck consumer every Monday is toil. Debugging a novel failure is not toil — it's engineering, however unpleasant. Writing the automation that kills the Monday restart is the opposite of toil. The distinction matters because the two get budgeted, and mislabeled engineering gets "automated" while mislabeled toil gets tolerated forever.
+
+Why an SRE KB cares: toil is the compound interest working against you. A team spending 70% of its time on toil has no time to do the work that reduces toil, so the fraction only grows — I've watched a team cross that event horizon and effectively become a manual-operations team with an engineering title. The pager is usually how you notice; the toil ledger is how you notice *before* the pager does.
+
+## Production patterns
+
+**Pattern: measure before moralizing.** You cannot reduce what you haven't counted, and toil systematically hides — it's spread across people, interleaved with real work, and each instance feels too small to mention. Cheap instrumentation that works: a per-team toil ledger (a shared doc or a `#toil` emoji-react convention on chat requests) capturing *what, how long, how often*; quarterly 30-minute survey ("what recurring manual thing eats your week?"); and mining the objective sources — pager history dispositioned as "known issue, manual remediation" (`reliability-engineer/principles/alerting.md` disposition data gives you this free), ticket queues with recurring titles, chat channels where other teams ask yours to do things by hand. Target output: hours/week/person of toil, per category. The number is always higher than anyone guessed.
+
+**Pattern: budget it like error budget.** Set a ceiling — the classic is 50% of team time, and for most teams even holding *that* line requires deliberate effort — and treat crossing it as a policy trigger, exactly like error-budget exhaustion (`reliability-engineer/principles/slos-and-error-budgets.md`): above the ceiling, automation work jumps the queue, feature commitments shrink, and leadership is told in those words. A toil budget without a consequence attached is the same paper policy as an unenforced error budget, and dies the same death.
+
+**Pattern: rank reduction work by (hours saved × risk removed) / effort.** Not by annoyance. The Monday restart that takes 10 minutes but has twice been done *wrong* at 3am (compounding the incident) outranks the tedious-but-safe weekly report. Toil that lives on the incident path carries risk-cost far beyond its hours — manual remediation under pressure is where typos become outages.
+
+**Pattern: kill toil in stages — document, then self-serve, then automate, then eliminate.** A runbook converts tribal toil into anyone-toil (halves the interrupt cost immediately). Self-service converts your-toil into their-button (the requesting team clicks it). Automation removes the human. Elimination — fixing the thing that made the work necessary — is the only permanent tier, and the question "why does this need doing *at all*?" should be asked before writing any automation, because automating a symptom entrenches it: the auto-restarter that "handles" the memory leak is now load-bearing, and the leak is now permanent architecture (see pitfalls).
+
+**Pattern: the pager is a toil source with its own doc.** Every recurring page whose runbook is "do the known thing" is toil delivered at maximum interruption cost. The alert-quality machinery (`reliability-engineer/principles/alerting.md`, quarterly audit; `reliability-engineer/agents/alert-noise-auditor.md` for the bulk scan) is simultaneously your highest-yield toil-reduction program: each such page either gets automated remediation, gets demoted to a ticket, or reveals a bug that gets *fixed*.
+
+## Common pitfalls
+
+- **Automating the symptom and calling it done.** The auto-restart cron "solves" the Monday toil and silently converts a visible defect into invisible architecture. Rule: symptom automation is allowed as a *bridge*, but it ships with a ticket to eliminate the cause and a metric on how often it fires — an auto-remediation that fires more over time is a defect getting worse behind soundproofing.
+- **Toil reduction as spare-time work.** "Automate it when things are quiet" means never — toil itself consumes the quiet. Reduction work gets sprint capacity like features do, or the budget above is theater. The forcing function that works: the toil ledger's top item is a standing sprint-planning agenda line.
+- **Measuring toil in tickets closed instead of hours returned.** Ten 5-minute toils closed looks better than one 4-hour-a-week toil killed, and is worth an eighth as much. Denominate in hours/week (and interrupt count, which costs beyond its minutes), always.
+- **Heroism accounting.** The person who does the manual thing fastest gets praised, which is a culture paying people to *keep* toil. Praise the automation that made the skill unnecessary. (Same incentive bug as rewarding firefighting over fire prevention — see the MTTR caution in `reliability-engineer/principles/incident-management.md`.)
+- **Automation that itself becomes toil.** The flaky script that needs babysitting, the bot that pages when it wedges — automation carries an ops cost, and automation nobody owns rots into net-negative. Every automation has an owner and its own "how often did a human touch this" number; if that number doesn't drop below the toil it replaced, it failed and should say so.
+
+## Where depth lives
+
+Pager-driven toil and dispositions: `reliability-engineer/principles/alerting.md` · budget-with-consequences pattern: `reliability-engineer/principles/slos-and-error-budgets.md` · recurring manual remediation as a postmortem factor class: `reliability-engineer/principles/postmortems.md` · automation delivery mechanics (pipelines, IaC): `devops-engineer/`.
