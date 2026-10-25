@@ -1,0 +1,29 @@
+# Budgeting & Forecasting — numbers you can be wrong about on purpose
+
+**Tier:** extended — production patterns and common pitfalls only. The anomaly baselines that share this machinery: `finops-engineer/principles/cost-anomaly-detection.md` (core tier — read it first if you're building detection).
+**Applies to:** provider-agnostic methodology; assumes a queryable billing export and an amortized-net cost basis (`finops-engineer/principles/commitments-and-discounts.md`).
+**Last verified:** 2026-07-25
+
+## The stance
+
+A forecast is not a prediction contest — it is a **commitment device**: a stated expectation that makes deviation *meaningful*. Without one, every month's actuals are just weather ("it went up; we grew, probably?"). With one, variance is a question with an owner. This is why forecast accuracy is a FinOps health metric (`finops-engineer/principles/operating-model-and-maturity.md`) and why optimization results are measured against forecast baselines, not last month (`finops-engineer/principles/cost-optimization.md`) — growth pollutes month-over-month comparisons in both directions.
+
+## Production patterns
+
+- **Driver-based over trend-based, as maturity allows.** Trend extrapolation (with seasonality) is the honest Crawl-phase floor and fine for stable workloads. The upgrade is decomposition: `cost = Σ (business driver × unit cost)` per major workload — orders × cost-per-order, plus the fixed platform floor (`finops-engineer/principles/unit-economics.md` supplies exactly these pieces; forecasting is where unit economics pays rent). Driver-based forecasts inherit the business's own growth plan, automatically incorporate seasonality the business already knows about, and — decisively — let variance be *decomposed*: was the miss volume (driver) or efficiency (unit cost)? A trend-based forecast can only say "we missed."
+- **Layer in the step events trends can't see:** launches, migrations (which *double-run* during cutover — budget the overlap explicitly or the migration "overruns" a budget that was wrong, demoralizing everyone), commitment purchases hitting the ledger, contract repricings, planned optimization landing (yes, forecast your savings — it's the only way to notice they didn't materialize). Source these from the same expected-change calendar the anomaly system uses (`finops-engineer/principles/cost-anomaly-detection.md`).
+- **Rolling forecast, quarterly re-baseline, monthly variance review.** The monthly review is a 30-minute standing item: actual vs. forecast per team/major workload; variances beyond a stated band (±5–10% is typical at team granularity) get explained *and classified* — driver miss, efficiency miss, step event, or forecast error. That classification is the feedback loop: forecast errors improve the model, efficiency misses feed optimization, driver misses go back to the business plan.
+- **Budgets are forecasts plus a decision.** A budget = the forecast the org chose to fund, plus headroom policy. Set budget alerts at forecast-to-exceed (actionable mid-month) rather than only at 100%-spent (an obituary). Alert design discipline — actionability, routing, fatigue — is inherited wholesale from `finops-engineer/principles/cost-anomaly-detection.md` and `reliability-engineer/principles/alerting.md`.
+- **State uncertainty like you mean it.** A range (or scenarios: conservative/plan/stretch, same trio as `finops-engineer/topics/vendor-negotiation.md`) beats a point estimate everywhere except a spreadsheet cell. Finance can work with "82–90k, midpoint 85" — what they can't work with is silent misses of falsely precise numbers.
+
+## Common pitfalls
+
+- **Forecasting from unallocated data.** With 40% of spend unattributed, a per-team forecast is fiction wearing a decimal point. Allocation first (`finops-engineer/principles/cost-visibility-and-allocation.md`); org-wide trend forecasting is the only honest product until coverage is decent. This is the maturity-skipping failure in forecast clothing.
+- **Ignoring seasonality and known events** — the flat-line forecast that makes November an "overrun" and January a fake "saving." If the business has a calendar, the forecast has that calendar.
+- **The sandbagging equilibrium.** Punish overruns hard and teams pad forecasts; padded forecasts make actuals land "under budget"; leadership banks phantom savings; capacity for real initiatives gets allocated against fiction. Detection: forecasts that are *always* over-actual by a similar margin are being managed, not estimated. Fix: treat forecast *accuracy* (in both directions, e.g. MAPE) as the metric, not favorable variance — a team that lands within 5% is healthier than one always 15% under. Same blameless logic as `reliability-engineer/principles/postmortems.md`: punish the miss and you stop learning about misses.
+- **No feedback loop from optimization.** Savings initiatives launch, forecasts never adjust, results become unfalsifiable ("we saved $200k" against what counterfactual?). Every funded optimization enters the forecast as a dated step-down; if the step-down doesn't appear in actuals, *that* is the review agenda item.
+- **One forecast for two audiences.** Finance needs invoiced-dollar precision with credits and amortization; engineering needs driver-level operational shape. Serving finance's format to engineers (or vice versa) is how forecasts go unread. Same model underneath, two renderings — and both on the same amortized cost basis so the totals reconcile.
+
+## Related
+
+`finops-engineer/principles/cost-anomaly-detection.md` · `finops-engineer/principles/unit-economics.md` · `finops-engineer/principles/operating-model-and-maturity.md` · `finops-engineer/topics/vendor-negotiation.md` · `reliability-engineer/principles/capacity-planning.md` (demand forecasting's reliability twin — same curves, different objective)
